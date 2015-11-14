@@ -1,0 +1,9 @@
+This is Version 0.0.1 of the rnx Package.
+------------------------------------------------
+See the NEWS and Changelog files for differences to previous versions.
+
+The rnx package is currently being used to implement some
+functionalities for predicting RNA structure in C++. It is not 
+currently ready for prime time but is instead a prototype.
+
+Peter Robinson
