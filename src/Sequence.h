@@ -17,7 +17,33 @@
 #include <string>
 #include <fstream>
 #include <vector>
- 
+
+
+/**
+ * \class Record
+ *
+ * \ingroup PackageName
+ * (Note, this needs exactly one \defgroup somewhere)
+ *
+ * \brief Class for representing a single sequence from a file
+ *
+ * Right now, FASTA
+ *
+ * \note Attempts at zen rarely work.
+ *
+ * \author (last to touch it) $Author: bv $
+ *
+ * \version $Revision: 0.0.1 $
+ *
+ * \date $Date: 2005/04/14 14:16:20 $
+ *
+ * Contact: peter.robinson@charite.de
+ *
+ * Created on: Wed Apr 13 18:39:37 2005
+ *
+ * $Id: doxygen-howto.html,v 1.5 2005/04/14 14:16:20 bv Exp $
+ *
+ */
 class Record {
  private:
   /** The name */
@@ -28,11 +54,11 @@ class Record {
  Record(std::string h) : header_(h), sequence_() {}
   void appendSequenceLine(std::string line);
   unsigned int get_size();
+  std::string substr(unsigned int start_pos, unsigned int length);
 
 };
 
-
-std::vector<Record> parseFASTA(std::string path);
+bool parseFASTA(std::string path, std::vector<Record> & records);
  
 
 #endif

@@ -5,7 +5,7 @@ LIBFLAGS = #lib/cppunitlite.a
 %.o : %.cpp
 	$(CC) $(CCFLAGS) -c $<
 
-objects = maintest.o MyTestClass.o unittest.o Sequence.o
+objects = maintest.o unittest.o Sequence.o
 
 all: maintest
 
@@ -19,7 +19,6 @@ maintest: $(objects)
 	./maintest
     
 main.o: main.cpp
-MyTestClass.o: MyTestClass.cpp
 simplest_test.o: simplest_test.cpp
 fixture_test.o: fixture_test.cpp
 

@@ -11,13 +11,17 @@ unsigned int Record::get_size() {
   return this->sequence_.length();
 }
 
-std::vector<Record> parseFASTA(std::string path) {
-  std::vector<Record> records;
+std::string Record::substr(unsigned int start_pos, unsigned int length){
+  return this->sequence_.substr(start_pos,length);
+}
+
+
+bool parseFASTA(std::string path, std::vector<Record> & records){
   std::ifstream fin(path.c_str());
   if(!fin) {
     std::cerr << "Couldn't open the input FASTA file: \""
 	      << path << "\"" << std::endl;
-    return records;
+    return false;
   }
 
   std::string line;
@@ -36,6 +40,6 @@ std::vector<Record> parseFASTA(std::string path) {
     }
     getline(fin, line);
   }
-  
-  return records;
+  fin.close();
+  return true;
 }
