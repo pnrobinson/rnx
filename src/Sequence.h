@@ -55,6 +55,7 @@ class Record {
   void appendSequenceLine(std::string line);
   unsigned int get_size();
   std::string substr(unsigned int start_pos, unsigned int length);
+  std::string get_rna() const;
 
 };
 

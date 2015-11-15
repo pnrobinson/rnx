@@ -55,8 +55,12 @@ void TestRegistry::add (Test *test) {
 
 void TestRegistry::run (TestResult& result) {
   result.startTests ();
-  for (std::vector<Test *>::iterator it = tests.begin (); it != tests.end (); ++it)
+  std::cout << std::endl;
+  for (std::vector<Test *>::iterator it = tests.begin (); it != tests.end (); ++it) {
     (*it)->run (result);
+    std::cout << ".";
+  }
+  std::cout << std::endl << std::endl;
   result.endTests ();
 }
 
@@ -103,10 +107,10 @@ void TestResultStdErr::endTests ()
     TestResult::endTests();
     std::cerr << testCount << " tests run" << std::endl;
     if (failureCount > 0)
-        std::cerr << "****** There were " << failureCount << " failures.";
+        std::cerr << "****** There were " << failureCount << " failures";
     else
-        std::cerr << "There were no test failures.";
-    std::cerr << "(time: " << secondsElapsed << " s)" << std::endl;
+      std::cerr << "There were no test failures";
+    std::cerr << " (time: " << secondsElapsed << " s)." << std::endl;
 }
 
 

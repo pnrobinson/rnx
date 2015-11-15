@@ -15,6 +15,15 @@ std::string Record::substr(unsigned int start_pos, unsigned int length){
   return this->sequence_.substr(start_pos,length);
 }
 
+std::string Record::get_rna() const {
+  std::string rna = this->sequence_;
+  for (unsigned i=0;i<rna.size();++i) {
+    if (rna[i]=='T')
+      rna[i]='U';
+  }
+  return rna;
+}
+
 
 bool parseFASTA(std::string path, std::vector<Record> & records){
   std::ifstream fin(path.c_str());

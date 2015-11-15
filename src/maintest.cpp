@@ -8,10 +8,7 @@
 
 std::string fasta_path="../testdata/KP942435.fasta";
 
-static inline std::string StringFrom(const std::string& value)
-{
-  return std::string(value.c_str());
-}
+
 
 TEST( Hello, world ) 
 {
@@ -23,6 +20,8 @@ TEST( Hello, world )
 
 /**
  * Class used to test FASTA Record.cpp
+ * Note that we rely on the FASTA file called KP942435.fasta
+ * being present in the directory ../testdata.
  */
 class RecordFixtureSetup : public TestSetup {
 public:
@@ -45,27 +44,14 @@ protected:
 /** check we get the correct number of sequences */
 TESTWITHSETUP(RecordFixture, readfasta1)
 {
-  //std::vector<Record> records;
-  //bool res= parseFASTA(fasta_path,records);
   int s = records.size();
   CHECK(s==1);
 }
 
-
-/** check we get the correct number of sequences */
-TEST(readfasta1,Record)
-{
-  std::vector<Record> records;
-  bool res= parseFASTA(fasta_path,records);
-  int s = records.size();
-  CHECK(s==1);
-}
 
 /** check we get the correct length of the sequence */
-TEST(readfasta2,Record)
+TESTWITHSETUP(RecordFixture,readfasta2)
 {
-  std::vector<Record> records;
-  bool res= parseFASTA(fasta_path,records);
   Record r = records[0];
   unsigned int sz = r.get_size();
   CHECK(sz==226);
@@ -73,14 +59,24 @@ TEST(readfasta2,Record)
 
 /** check we get the correct substring starting
  * at position 3 and with length 4.*/
-TEST(readfasta3,Record)
+TESTWITHSETUP(RecordFixture,readfasta3)
 {
-  std::vector<Record> records;
-  bool res= parseFASTA(fasta_path,records);
   Record r = records[0];
   std::string seq = r.substr(3,4);
   CHECK_STRINGS_EQUAL("AGCT",seq);
 }
+
+/** check we get the correct substring starting
+ * at position 3 and with length 4.*/
+TESTWITHSETUP(RecordFixture,readfasta4)
+{
+  Record r = records[0];
+  std::string rna = r.get_rna();
+  std::string seq=rna.substr(3,4);
+  CHECK_STRINGS_EQUAL("AGCU",seq);
+}
+
+
 
 int main(){   
 TestResultStdErr result;
