@@ -31,7 +31,7 @@ std::string Record::get_accession_number() const {
 }
 
 int Record::get_gi() const {
-  return 42;
+  return gi_;
 }
 
 
@@ -61,11 +61,16 @@ std::vector<std::string> split(std::string str, char delimiter) {
 }
 
 
-
+/**
+ * Note that this constructor assumes we
+ * are gettting an NCBI FASTA file. In that case, 
+ * the header line often has a certain structure,
+ * e.g., gi|21434723 for the NCBI "gi" number and
+ * gb|accession|locus for GenBank sequences (e.g., gb|M73307|AGMA13GT).
+ * @param h The header, e.g, >gi|21434723|gb|M73307|AGMA13GT| name...
+ */
 Record::Record(std::string h) : header_(h), sequence_() {
-   /* try to parse the fields of the header. For now we are
-   * determining if the FASTA header is from NCBI and if so
-   * we search for the gb field, which is followed by the accession number.
+   /* try to parse the fields of the header. 
    */
   if (header_.length()>0 && header_.at(0)=='>') /* remove '>' if necessary */
     header_.replace(header_.begin(),header_.end(),header_.substr(1));
@@ -76,12 +81,13 @@ Record::Record(std::string h) : header_(h), sequence_() {
   for (unsigned i=0;i<len;++i) {
     if (vec[i].compare("gi")==0){
       if (++i < len) {
-//int gi = std::atoi (vec[i].c_str());
-gi_= 42;
+	int gi = std::atoi (vec[i].c_str());
+	gi_= gi;
       }
-    } else if (vec[i].compare("gb")) {
-      if (++i < len)
+    } else if (vec[i].compare("gb")==0) {
+      if (++i < len) {
 	accession_ = vec[i];
+      }
       if (++i < len)
 	locus_ = vec[i];
     }

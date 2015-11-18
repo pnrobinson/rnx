@@ -90,8 +90,9 @@ TESTWITHSETUP(RecordFixture,readfasta5)
 TESTWITHSETUP(RecordFixture,readfasta6)
 {
   Record r = records[0];
-  unsigned int gi = r.get_gi();
-  CHECK(930685873u==gi);
+  int gi = r.get_gi();
+  std::cout << "got gi=" << gi << std::endl;
+  CHECK(930685873==gi);
 }
 
 
