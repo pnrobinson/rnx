@@ -76,6 +76,24 @@ TESTWITHSETUP(RecordFixture,readfasta4)
   CHECK_STRINGS_EQUAL("AGCU",seq);
 }
 
+/** check we get the correct acession number
+ * >gi|930685873|gb|KP942435.1| Aeromonas hydrophila strain YFG cytotoxic enterotoxin (act) gene, partial cds.*/
+TESTWITHSETUP(RecordFixture,readfasta5)
+{
+  Record r = records[0];
+  std::string acc = r.get_accession_number();
+  CHECK_STRINGS_EQUAL("KP942435.1",acc);
+}
+
+/** check we get the correct acession number
+ * >gi|930685873|gb|KP942435.1| Aeromonas hydrophila strain YFG cytotoxic enterotoxin (act) gene, partial cds.*/
+TESTWITHSETUP(RecordFixture,readfasta6)
+{
+  Record r = records[0];
+  unsigned int gi = r.get_gi();
+  CHECK(930685873u==gi);
+}
+
 
 
 int main(){   

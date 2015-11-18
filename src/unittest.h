@@ -16,39 +16,42 @@
  * Base class from which the Test class will derive.
  */
 class TestSetup {
-public:
-virtual void setup() = 0;
-virtual void teardown() = 0;
+ public:
+  virtual void setup() = 0;
+  virtual void teardown() = 0;
 };
 
 
 
 
-
+/**
+ * This class encapsulates the information that accrues upon a test error.
+ */
 class Failure
 {
-public:
-Failure (std::string theCondition, std::string theTestName, std::string theFileName, long theLineNumber) 
-  : condition (theCondition), testName (theTestName), fileName (theFileName), lineNumber (theLineNumber)
-{
-}
+ public:
+  Failure (std::string theCondition, std::string theTestName, std::string theFileName, long theLineNumber) 
+    : condition (theCondition), testName (theTestName), fileName (theFileName), lineNumber (theLineNumber)
+  {
+    /* no-op */
+  }
 
   std::string condition;
-std::string testName;
-std::string fileName;
-long lineNumber;
+  std::string testName;
+  std::string fileName;
+  long lineNumber;
 };
 
 
 inline std::ostream& operator<< (std::ostream& stream, const Failure& failure)
 {
-	stream 
-		<< failure.fileName.c_str ()
-		<< "(" << failure.lineNumber << "):"
-		<< "Failure: \"" << failure.condition.c_str () << "\" " 
-		<< std::endl;
-
-	return stream;
+  stream 
+    << failure.fileName.c_str ()
+    << "(" << failure.lineNumber << "):"
+    << "Failure: \"" << failure.condition.c_str () << "\" " 
+    << std::endl;
+  
+  return stream;
 }
 
 
@@ -71,7 +74,6 @@ class Test : public TestSetup
 };
 
 // The following MACROs are use to define the units tests in client code
-
 
 
 #define TEST(name,classUnderTest)\

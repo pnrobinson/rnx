@@ -50,12 +50,21 @@ class Record {
   std::string header_;
   /** The DNA or RNA sequence */
   std::string sequence_;
+  /** The NCBI gi number of the sequence */
+  unsigned int gi_;
+  /** The accession number plus version suffix */
+  std::string accession_;
+  /** The name of the locus */
+  std::string locus_;
  public:
- Record(std::string h) : header_(h), sequence_() {}
+  Record(std::string h);
   void appendSequenceLine(std::string line);
   unsigned int get_size();
   std::string substr(unsigned int start_pos, unsigned int length);
   std::string get_rna() const;
+  int get_gi() const;
+  std::string get_accession_number() const;
+  std::string get_locus() const;
 
 };
 
