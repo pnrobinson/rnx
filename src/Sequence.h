@@ -69,6 +69,7 @@ class Record {
 };
 
 bool parseFASTA(std::string path, std::vector<Record> & records);
+bool parseGenBank(std::string path, std::vector<Record> & records);
  
 
 #endif

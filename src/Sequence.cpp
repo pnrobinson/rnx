@@ -84,7 +84,7 @@ Record::Record(std::string h) : header_(h), sequence_() {
 	int gi = std::atoi (vec[i].c_str());
 	gi_= gi;
       }
-    } else if (vec[i].compare("gb")==0) {
+    } else if (vec[i].compare("gb")==0 || vec[i].compare("ref")==0) {
       if (++i < len) {
 	accession_ = vec[i];
       }
@@ -92,7 +92,6 @@ Record::Record(std::string h) : header_(h), sequence_() {
 	locus_ = vec[i];
     }
   }
-
 }
 
   /**
@@ -113,7 +112,40 @@ bool parseFASTA(std::string path, std::vector<Record> & records){
   while(fin) {
     if(line[0] == '>')
     {
-records.push_back(Record(line));
+      records.push_back(Record(line));
+      counter++;
+    }
+    else
+    {
+      records[counter].appendSequenceLine(line);
+    }
+    getline(fin, line);
+  }
+  fin.close();
+ 
+  return true;
+}
+
+
+/**
+ * \TODO Make robust GenBank parser!
+ */
+bool parseGenBank(std::string path, std::vector<Record> & records) {
+  std::ifstream fin(path.c_str());
+  if(!fin) {
+    std::cerr << "Couldn't open the input GenBank file: \""
+	      << path << "\"" << std::endl;
+    return false;
+  }
+
+  std::string line;
+  size_t counter = -1;
+  // Priming read. May want to check that this line is a "header" before the loop.
+  getline(fin, line);
+  while(fin) {
+    if(line.find("LOCUS") != std::string::npos)
+    {
+      records.push_back(Record(line));
       counter++;
     }
     else

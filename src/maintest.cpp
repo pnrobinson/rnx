@@ -38,6 +38,47 @@ protected:
   std::vector<Record> records;
 };
 
+/**
+ * Class used to test FASTA Record.cpp
+ * Note that we rely on the FASTA file called NM_000518.fasta (beta globin gene)
+ * being present in the directory ../testdata.
+ */
+class HBBFixtureSetup : public TestSetup {
+public:
+  void setup() {
+    std::string fasta_path="../testdata/NM_000518.fasta";
+    bool res= parseFASTA(fasta_path,records);
+  }
+
+  void teardown() {
+    /* no-op */
+  }
+    
+protected:
+  std::vector<Record> records;
+};
+
+
+/**
+ * Class used to test FASTA Record.cpp
+ * Note that we rely on the FASTA file called NM_000518.fasta (beta globin gene)
+ * being present in the directory ../testdata.
+ */
+class HBBgbFixtureSetup : public TestSetup {
+public:
+  void setup() {
+    std::string gb_path="../testdata/NM_000518.gb";
+    bool res= parseGenBank(gb_path,records);
+  }
+
+  void teardown() {
+    /* no-op */
+  }
+    
+protected:
+  std::vector<Record> records;
+};
+
 
 
 
@@ -91,15 +132,74 @@ TESTWITHSETUP(RecordFixture,readfasta6)
 {
   Record r = records[0];
   int gi = r.get_gi();
-  std::cout << "got gi=" << gi << std::endl;
   CHECK(930685873==gi);
+}
+
+/** check we get the correct number of sequences */
+TESTWITHSETUP(HBBFixture, readfasta1)
+{
+  int s = records.size();
+  CHECK(s==1);
+}
+
+/** check we get the correct length of the sequence */
+TESTWITHSETUP(HBBFixture,readfasta2)
+{
+  Record r = records[0];
+  unsigned int sz = r.get_size();
+  CHECK(sz==626);
+}
+
+/** check we get the correct substring starting
+ * at position 60 and with length 10.*/
+TESTWITHSETUP(HBBFixture,readfasta3)
+{
+  Record r = records[0];
+  std::string seq = r.substr(60,10);
+  CHECK_STRINGS_EQUAL("TGACTCCTGA",seq);
+}
+
+/** check we get the correct substring starting
+ * at position 3 and with length 4.*/
+TESTWITHSETUP(HBBFixture,readfasta4)
+{
+  Record r = records[0];
+  std::string rna = r.get_rna();
+  std::string seq=rna.substr(60,10);
+  CHECK_STRINGS_EQUAL("UGACUCCUGA",seq);
+}
+
+/** check we get the correct acession number
+ * >gi|930685873|gb|KP942435.1| Aeromonas hydrophila strain YFG cytotoxic enterotoxin (act) gene, partial cds.*/
+TESTWITHSETUP(HBBFixture,readfasta5)
+{
+  Record r = records[0];
+  std::string acc = r.get_accession_number();
+  CHECK_STRINGS_EQUAL("NM_000518.4",acc);
+}
+
+/** check we get the correct acession number
+ * >gi|28302128|ref|NM_000518.4| Homo sapiens hemoglobin, beta (HBB), mRNA
+ */
+TESTWITHSETUP(HBBFixture,readfasta6)
+{
+  Record r = records[0];
+  int gi = r.get_gi();
+  CHECK(28302128==gi);
+}
+
+/** check we get the correct number of sequences */
+TESTWITHSETUP(HBBgbFixture, readgb1)
+{
+  int s = records.size();
+  CHECK(s==1);
 }
 
 
 
 int main(){   
-TestResultStdErr result;
-TestRegistry::runAllTests(result);
-    return (result.getFailureCount());
+  TestResultStdErr result;
+  TestRegistry::runAllTests(result);
+  return (result.getFailureCount());
 }
 
