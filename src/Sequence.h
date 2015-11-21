@@ -65,7 +65,9 @@ class Record {
   int get_gi() const;
   std::string get_accession_number() const;
   std::string get_locus() const;
-
+  //
+  void set_locus(std::string loc);
+  void set_accession(std::string acc);
 };
 
 bool parseFASTA(std::string path, std::vector<Record> & records);

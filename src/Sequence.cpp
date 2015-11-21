@@ -60,6 +60,17 @@ std::vector<std::string> split(std::string str, char delimiter) {
   return internal;
 }
 
+void Record::set_locus(std::string loc){
+  this->locus_ = loc;
+}
+
+std::string Record::get_locus() const{
+  return this->locus_;
+}
+void Record::set_accession(std::string acc){
+  this->accession_ = acc;
+}
+
 
 /**
  * Note that this constructor assumes we
@@ -142,14 +153,25 @@ bool parseGenBank(std::string path, std::vector<Record> & records) {
   size_t counter = -1;
   // Priming read. May want to check that this line is a "header" before the loop.
   getline(fin, line);
+  
   while(fin) {
-    if(line.find("LOCUS") != std::string::npos)
+    if(line.find("LOCUS") ==0) /* line starts with LOCUS */
     {
       records.push_back(Record(line));
       counter++;
-    }
-    else
-    {
+      //e.g., DEFINITION Homo sapiens hemoglobin, beta (HBB), mRNA.
+    } else if (line.find("DEFINITION")==0) {
+      unsigned i=10;
+      while (std::isspace(line.at(i)))
+	i++;
+      // Assume if we get here that there must be a Record object in the vector
+      records.back().set_locus(line.substr(i));
+    } else if (line.find("ACCESSION")==0) {
+      unsigned i=10;
+      while (std::isspace(line.at(i)))
+	i++;
+      records.back().set_accession(line.substr(i));
+    } else {
       records[counter].appendSequenceLine(line);
     }
     getline(fin, line);

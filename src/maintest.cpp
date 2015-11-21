@@ -195,6 +195,30 @@ TESTWITHSETUP(HBBgbFixture, readgb1)
   CHECK(s==1);
 }
 
+/** check we get the correct length of the HBB sequence */
+TESTWITHSETUP(HBBgbFixture,readgb2)
+{
+  Record r = records[0];
+  unsigned int sz = r.get_size();
+  CHECK(sz==626);
+}
+
+/** check we get the LOCUS DEFINITION */
+TESTWITHSETUP(HBBgbFixture,readgb3)
+{
+  Record r = records[0];
+  std::string loc = r.get_locus();
+  CHECK_STRINGS_EQUAL("Homo sapiens hemoglobin, beta (HBB), mRNA.",loc);
+}
+
+/** check we get the right accession */
+TESTWITHSETUP(HBBgbFixture,readgb4)
+{
+  Record r = records[0];
+  std::string acc = r.get_accession_number();
+  CHECK_STRINGS_EQUAL("NM_000518",acc);
+}
+
 
 
 int main(){   
