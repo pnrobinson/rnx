@@ -219,6 +219,34 @@ TESTWITHSETUP(HBBgbFixture,readgb4)
   CHECK_STRINGS_EQUAL("NM_000518",acc);
 }
 
+/** check we get the correct substring starting
+ * at position 60 and with length 10.*/
+TESTWITHSETUP(HBBgbFixture,readgb5)
+{
+  Record r = records[0];
+  std::string seq = r.substr(60,10);
+  CHECK_STRINGS_EQUAL("TGACTCCTGA",seq);
+}
+
+/** check we get the correct RNA substring starting
+ * at position 60 and with length 10.*/
+TESTWITHSETUP(HBBgbFixture,readgb6)
+{
+  Record r = records[0];
+  std::string rna = r.get_rna();
+  std::string seq=rna.substr(60,10);
+  CHECK_STRINGS_EQUAL("UGACUCCUGA",seq);
+}
+
+/** check we get the correct acession number
+ * >gi|28302128|ref|NM_000518.4| Homo sapiens hemoglobin, beta (HBB), mRNA
+ */
+TESTWITHSETUP(HBBgbFixture,readgb7)
+{
+  Record r = records[0];
+  int gi = r.get_gi();
+  CHECK(28302128==gi);
+}
 
 
 int main(){   

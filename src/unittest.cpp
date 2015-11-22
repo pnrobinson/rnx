@@ -4,6 +4,7 @@
 
 #include "unittest.h"
 
+#include <exception>
 #include <iostream>
 #include <sstream>
 
@@ -20,8 +21,10 @@ void Test::run (TestResult& result)
   try {
     setup();
     runTest (result);
+  } catch (std::exception e) {
+    result.addFailure (Failure (e.what(), name, "", 0));	
   } catch (...) {
-    result.addFailure (Failure ("Unhandled exception", name, "", 0));	\
+    result.addFailure (Failure ("Unhandled exception", name, "", 0));	
   }
   teardown();
   result.testWasRun();

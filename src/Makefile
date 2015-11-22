@@ -1,5 +1,5 @@
 CC = g++
-CCFLAGS = -g -ansi
+CCFLAGS = -g3 -ansi -DDEBUG 
 LIBFLAGS = #lib/cppunitlite.a
 
 %.o : %.cpp
@@ -17,7 +17,7 @@ maintest: $(objects)
 	${CC} -o maintest $(objects) ${LIBFLAGS} 
 	@echo "Running unit tests..."
 	./maintest
-    
+
 main.o: main.cpp
 simplest_test.o: simplest_test.cpp
 fixture_test.o: fixture_test.cpp

@@ -56,6 +56,7 @@ class Record {
   std::string accession_;
   /** The name of the locus */
   std::string locus_;
+ 
  public:
   Record(std::string h);
   void appendSequenceLine(std::string line);
@@ -68,6 +69,9 @@ class Record {
   //
   void set_locus(std::string loc);
   void set_accession(std::string acc);
+  void set_gi(int);
+   // some implementation details
+  void appendSequenceFromGeneBankLines(std::vector<std::string> seqlines);
 };
 
 bool parseFASTA(std::string path, std::vector<Record> & records);

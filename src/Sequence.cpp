@@ -1,8 +1,10 @@
 
 
 #include "Sequence.h"
-#include <sstream>
+#include <algorithm>
 #include <cstdlib>
+#include <sstream>
+
 
 void Record::appendSequenceLine(std::string line){
   this->sequence_ += line;
@@ -32,6 +34,10 @@ std::string Record::get_accession_number() const {
 
 int Record::get_gi() const {
   return gi_;
+}
+
+void Record::set_gi(int gi) {
+  gi_=gi;
 }
 
 
@@ -137,9 +143,72 @@ bool parseFASTA(std::string path, std::vector<Record> & records){
   return true;
 }
 
+/**
+ * This function removes leading space and digits as well
+ * as any space, and returns the resulting string.
+ * It is intended to deal with GenBank lines such as
+ * "   601 taataaaaaa catttatttt cattgc"
+ */
+std::string remove_if_space_or_digit(std::string ori) {
+  unsigned i = 0;
+  std::string str = ori;
+  while (std::isspace(str[i]))
+    i++;
+  if (std::isdigit(str[i]))
+    while (std::isdigit(str[i]))
+      i++;
+  std::string dest = str.substr(i);
+  std::string::iterator end_pos = std::remove(dest.begin(), dest.end(), ' ');
+  dest.erase(end_pos, str.end());
+  return dest;
+}
+
 
 /**
- * \TODO Make robust GenBank parser!
+ * Adds nucleotide sequence data to the Record object from a list of 
+ * lines from the Genbank file (between ORIGIN and //) that also
+ * contain numbers and spaces. This function removes the number and
+ * the spaces and converts all nucleotides to upper case. Note that
+ * the function currently only accepts AaCcGgTt nucleotides.
+ * @param seqlines a vector of GenBank formated lines representing the sequence.
+ */
+void Record::appendSequenceFromGeneBankLines(std::vector<std::string> seqlines){
+  if (seqlines.size()==0)
+    return;
+ 
+  unsigned int sz = 60*seqlines.size(); // there are maximally 60 nucleotides per line
+  this->sequence_.reserve(sz);
+  unsigned int i=0;
+  std::vector<std::string>::iterator it=seqlines.begin();
+  for (; it != seqlines.end(); ++it) {
+    for (unsigned int j=0;j<it->size();++j) {
+      switch(it->at(j)) {
+      case 'a':
+      case 'A':
+	sequence_.push_back('A');
+	break;
+      case 'c':
+      case 'C':
+	sequence_.push_back('C');
+	break;
+      case 'g':
+      case 'G':
+	sequence_.push_back('G');
+	break;
+      case 't':
+      case 'T':
+	sequence_.push_back('T');
+	break;
+      }
+    }
+  }
+  //std::cout << "seq=" << sequence_ << std::endl << " lentgh=" << sequence_.length() << std::endl;
+}
+
+/**
+ * Parse a GenBank formated file with one or more entries.
+ * @param path Path to the GenBank file
+ * @param records Reference to a vector that will be filled with one Record for each GenBank entry.
  */
 bool parseGenBank(std::string path, std::vector<Record> & records) {
   std::ifstream fin(path.c_str());
@@ -171,12 +240,44 @@ bool parseGenBank(std::string path, std::vector<Record> & records) {
       while (std::isspace(line.at(i)))
 	i++;
       records.back().set_accession(line.substr(i));
-    } else {
-      records[counter].appendSequenceLine(line);
+    } else if (line.find("VERSION")==0) {
+       std::size_t found = line.find("GI:");
+       if (found!=std::string::npos && found < 3+line.length()) {
+	 std::string gi = line.substr(found+3);
+	 int g = atoi(gi.c_str());
+	 records.back().set_gi(g);
+       }
+     
+    } else if  (line.find("ORIGIN")==0) {
+      /* i.e., we are at beginning of sequence block
+ORIGIN      
+        1 acatttgctt ctgacacaac tgtgttcact agcaacctca aacagacacc atggtgcatc
+      (...)
+      601 taataaaaaa catttatttt cattgc
+//
+*/
+      std::vector<std::string> seqlines;
+      getline(fin, line); // advance to first sequence line
+      while (fin) {
+	if (line.find("//") == 0) {
+	  break;
+	} else {
+	  seqlines.push_back(line);
+	}
+	getline(fin, line);
+      }
+      records.back().appendSequenceFromGeneBankLines(seqlines);
     }
+      /* when we get here we should have just read the // line at the end of the sequence */
+   /* else if ORIGIN */
     getline(fin, line);
   }
   fin.close();
- 
+  
   return true;
 }
+
+
+
+
+/* eof */
