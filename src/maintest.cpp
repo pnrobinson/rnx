@@ -248,6 +248,50 @@ TESTWITHSETUP(HBBgbFixture,readgb7)
   CHECK(28302128==gi);
 }
 
+/** check we get the correct start position of the CDS
+ */
+TESTWITHSETUP(HBBgbFixture,readgb8)
+{
+  Record r = records[0];
+  int startpos = r.get_CDS_startpos();
+  CHECK(51==startpos);
+}
+
+/** check we get the correct end position of the CDS
+ */
+TESTWITHSETUP(HBBgbFixture,readgb9)
+{
+  Record r = records[0];
+  int endpos = r.get_CDS_endpos();
+  CHECK(494==endpos);
+}
+
+/** check we get the correct length of the CDS (begining with the start codon atg
+ * and ending with the stop codon taa, corresponding to protein of 147 amino acids).
+ */
+TESTWITHSETUP(HBBgbFixture,readgb10)
+{
+  Record r = records[0];
+  int len = r.get_CDS_length();
+  CHECK(444==len);
+}
+
+/** check we get the correct 5utr sequence (we will check the length
+ * and the first and last ten nucleotides). The length is 50 nucleotides
+ */
+TESTWITHSETUP(HBBgbFixture,readgb11)
+{
+  Record r = records[0];
+  std::string utr5 = r.get_5utr();
+  unsigned int len = utr5.length();
+  CHECK(50==len);
+  std::string start5utr = utr5.substr(0,10);
+  CHECK_STRINGS_EQUAL("ACATTTGCTT",start5utr);
+  std::string end5utr = utr5.substr(40);
+  CHECK_STRINGS_EQUAL("AACAGACACC",end5utr);
+}
+
+
 
 int main(){   
   TestResultStdErr result;

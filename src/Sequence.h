@@ -1,13 +1,12 @@
 #ifndef SEQUENCE_H
 #define SEQUENCE_H
 
-/** ===========================================================================
+/** 
  * Sequence.h
  * A set of classes designed to input and store DNA and RNA sequence data and
  * to provide a well defined interface to the RNA folding sections of the code.
  * @author Peter Robinson
- * @version 0.0.1 (15 November 2015)
- * ============================================================================
+ * @version 0.0.2 (22 November 2015)
  */
 
 
@@ -56,7 +55,10 @@ class Record {
   std::string accession_;
   /** The name of the locus */
   std::string locus_;
- 
+  /** Start position (one based) of coding sequence. */
+  unsigned int CDS_startpos_;
+  /** End position (one based) of coding sequence. */
+  unsigned int CDS_endpos_;
  public:
   Record(std::string h);
   void appendSequenceLine(std::string line);
@@ -66,10 +68,16 @@ class Record {
   int get_gi() const;
   std::string get_accession_number() const;
   std::string get_locus() const;
+  unsigned int get_CDS_startpos() const;
+  unsigned int get_CDS_endpos() const;
+  unsigned int get_CDS_length() const;
+  std::string get_5utr() const;
   //
   void set_locus(std::string loc);
   void set_accession(std::string acc);
   void set_gi(int);
+  void set_CDS_startpos(int startpos);
+  void set_CDS_endpos(int endpos);
    // some implementation details
   void appendSequenceFromGeneBankLines(std::vector<std::string> seqlines);
 };

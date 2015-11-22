@@ -27,6 +27,18 @@ std::string Record::get_rna() const {
   return rna;
 }
 
+unsigned int Record::get_CDS_startpos() const {
+  return CDS_startpos_;
+}
+
+unsigned int Record::get_CDS_endpos() const {
+  return CDS_endpos_;
+}
+
+unsigned int Record::get_CDS_length() const {
+  return (1 + CDS_endpos_ - CDS_startpos_);
+}
+
 std::string Record::get_accession_number() const {
   if (!accession_.empty()) return this->accession_;
   else return "?";
@@ -34,6 +46,14 @@ std::string Record::get_accession_number() const {
 
 int Record::get_gi() const {
   return gi_;
+}
+
+/**
+ * @return String representing the entire 5' UTR (as DNA).
+ */
+std::string Record::get_5utr() const {
+  unsigned int len5utr = CDS_startpos_-1;
+  return sequence_.substr(0,len5utr);
 }
 
 void Record::set_gi(int gi) {
@@ -75,6 +95,12 @@ std::string Record::get_locus() const{
 }
 void Record::set_accession(std::string acc){
   this->accession_ = acc;
+}
+void Record:: set_CDS_startpos(int startpos){
+  this->CDS_startpos_ =  static_cast<unsigned int>(startpos);
+}
+void Record::set_CDS_endpos(int endpos){
+  this->CDS_endpos_ = static_cast<unsigned int>(endpos);
 }
 
 
@@ -224,6 +250,7 @@ bool parseGenBank(std::string path, std::vector<Record> & records) {
   getline(fin, line);
   
   while(fin) {
+    //line = trim(line);
     if(line.find("LOCUS") ==0) /* line starts with LOCUS */
     {
       records.push_back(Record(line));
@@ -248,6 +275,27 @@ bool parseGenBank(std::string path, std::vector<Record> & records) {
 	 records.back().set_gi(g);
        }
      
+    } else if (line.find("   CDS")!=std::string::npos) {
+      /* e.g., "     CDS             51..494" */
+      unsigned int i = line.find("CDS") + 3;
+      while (std::isspace(line.at(i)))
+	i++;
+      unsigned int j=i;
+      while (line.at(j) != '.')
+	j++;
+      unsigned int len = j-i+1;
+      std::string dgt = line.substr(i,len);
+      int startpos = atoi(dgt.c_str());
+      while(line.at(j)=='.')
+	j++;
+      i=j;
+      while (i<line.length() && std::isdigit(line.at(i)))
+	i++;
+      len=i-j+1;
+      dgt = line.substr(j,len);
+      int endpos=atoi(dgt.c_str());
+      records.back().set_CDS_startpos(startpos);
+      records.back().set_CDS_endpos(endpos);
     } else if  (line.find("ORIGIN")==0) {
       /* i.e., we are at beginning of sequence block
 ORIGIN      
