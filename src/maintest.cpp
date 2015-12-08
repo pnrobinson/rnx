@@ -2,6 +2,7 @@
 
 #include "unittest.h"
 #include "Sequence.h"
+#include "Nussinov.h"
 
 #include <string>
 #include <vector>
@@ -38,6 +39,23 @@ protected:
   std::vector<Record> records;
 };
 
+class NussinovFixtureSetup: public TestSetup {
+public:
+  void setup() {
+    std::string gb_path="../testdata/NM_000518.gb";
+    std::vector<Record> records;
+    bool res= parseGenBank(gb_path,records);
+    Record r = records[0];
+    std::string rna = r.get_rna();
+    nuss = new Nussinov(rna.c_str());
+  }
+  void teardown() {
+    delete nuss;
+  }
+protected:
+  Nussinov * nuss;
+};
+
 /**
  * Class used to test FASTA Record.cpp
  * Note that we rely on the FASTA file called NM_000518.fasta (beta globin gene)
@@ -60,8 +78,8 @@ protected:
 
 
 /**
- * Class used to test FASTA Record.cpp
- * Note that we rely on the FASTA file called NM_000518.fasta (beta globin gene)
+ * Class used to test GenBank from Record.cpp
+ * Note that we rely on the GenBank file called NM_000518.gb (beta globin gene)
  * being present in the directory ../testdata.
  */
 class HBBgbFixtureSetup : public TestSetup {
@@ -291,6 +309,22 @@ TESTWITHSETUP(HBBgbFixture,readgb11)
   CHECK_STRINGS_EQUAL("AACAGACACC",end5utr);
 }
 
+
+/** check we get the correct length of the HBB sequence */
+TESTWITHSETUP(NussinovFixture,size1)
+{
+  unsigned int sz = nuss->get_len();
+  CHECK(sz==626);
+}
+
+
+
+TEST (Nussinov, fold1) {
+  const char * rna= "AUTCCGGAUA";
+  Nussinov * nuss = new Nussinov(rna);
+  char * folded = nuss->fold_rna();
+  CHECK_CSTRINGS_EQUAL("((..))",folded);
+}
 
 
 int main(){   

@@ -11,6 +11,7 @@
 #include <string>
 #include <time.h>
 #include <vector>
+#include <cstring>
 
 /**
  * Base class from which the Test class will derive.
@@ -175,7 +176,19 @@ class Test : public TestSetup
 }
 
 
-
+#define CHECK_CSTRINGS_EQUAL(expected,actual)\
+  {\
+    try { \
+      int c = strcmp(expected,actual); \
+      if (c!=0) { \
+	std::string msg=std::string("expected '") + expected +	\
+	  std::string("' but was '") + actual + "'";		\
+	result_.addFailure(Failure(msg.c_str(), name, __FILE__,__LINE__));\
+      } \
+    } catch(...) { \
+      result_.addFailure (Failure ("Unhandled exception", name, __FILE__, __LINE__)); \
+    }\
+}
 
 class Failure;
 

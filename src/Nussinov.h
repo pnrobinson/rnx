@@ -38,7 +38,18 @@
  */
 
 class Nussinov {
+  /** A copy of the RNA sequence we are to investigate (note, maybe we do not need to make copy). */
+  char * rna_;
+  
+ public:
+  Nussinov(const char * rna);
+  ~Nussinov();
+  /** Get length of the RNA sequence being analysed. */
+  unsigned int get_len() const;
+  /** Return a parenthesis-dot representation of the RNA secondary structure. */
+  char * fold_rna() const;
 
+  
 
 
 
