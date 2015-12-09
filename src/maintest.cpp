@@ -7,17 +7,11 @@
 #include <string>
 #include <vector>
 
-std::string fasta_path="../testdata/KP942435.fasta";
+//std::string fasta_path="../testdata/KP942435.fasta";
 
 
 
-TEST( Hello, world ) 
-{
-  std::string s1("Hello"), s2("Hello"), s3("world");
-  CHECK_STRINGS_EQUAL(s1, s2);
-  CHECK_STRINGS_EQUAL(s2, s1);
-  CHECK(s1 != s3);
-}
+
 
 /**
  * Class used to test FASTA Record.cpp
@@ -320,10 +314,40 @@ TESTWITHSETUP(NussinovFixture,size1)
 
 
 TEST (Nussinov, fold1) {
-  const char * rna= "AUTCCGGAUA";
+  const char * rna= "GAAAC";
   Nussinov * nuss = new Nussinov(rna);
   char * folded = nuss->fold_rna();
-  CHECK_CSTRINGS_EQUAL("((..))",folded);
+  CHECK_CSTRINGS_EQUAL("(...)",folded);
+  delete nuss;
+  delete folded;
+}
+
+
+TEST (Nussinov, fold2) {
+  const char * rna= "GAAAAC";
+  Nussinov * nuss = new Nussinov(rna);
+  char * folded = nuss->fold_rna();
+  CHECK_CSTRINGS_EQUAL("(....)",folded);
+  delete nuss;
+  delete folded;
+}
+
+TEST (Nussinov, fold3) {
+  const char * rna= "CAAAAAG";
+  Nussinov * nuss = new Nussinov(rna);
+  char * folded = nuss->fold_rna();
+  CHECK_CSTRINGS_EQUAL("(.....)",folded);
+  delete nuss;
+  delete folded;
+}
+
+TEST (Nussinov, fold4) {
+  const char * rna= "CGAAAAACG";
+  Nussinov * nuss = new Nussinov(rna);
+  char * folded = nuss->fold_rna();
+  CHECK_CSTRINGS_EQUAL("((.....))",folded);
+  delete nuss;
+  delete folded;
 }
 
 

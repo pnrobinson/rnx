@@ -5,6 +5,7 @@
 #include "Nussinov.h"
 
 #include <cstring>
+#include <iostream>
 #include <algorithm>    // std::max
 
 
@@ -43,16 +44,38 @@ int bonds(char a, char b) {
       return 2;
   } else if (a=='A' && b=='U')
     return 2;
-  else if (a=='G' && b=='C')
+  else if (a=='C' && b=='G')
     return 3;
-  else
-    return 0;
+  
+   return 0;
 }
 
 
 
-void traceback(int i, int j, char *p) {
-
+void
+Nussinov::traceback(int i, int j, char *p, int len, int**ary) const {
+  if (i>=j || i>=len)
+    return;
+  int cij=ary[i][j];
+  if (cij==0) {
+    for (int k=i;k<=j;++k)
+      p[k]='.';
+  }
+  if (cij==ary[i+1][j]) { /* position i is unbonded */
+    p[i]='.';
+    return traceback(i+1,j,p,len,ary);
+  }
+  if (cij== bonds(rna_[i],rna_[j]) + ary[i+1][j-1]) { /* i is bonded with j */
+    p[i]='(';
+    p[j]=')';
+    return traceback(i+1,j-1,p,len,ary);
+  }
+  for (int k=i+1;k<j;++k) {
+    if (cij==ary[i][k] + ary[k+1][j]) {
+      traceback(i,k,p,len,ary);
+      traceback(k+1,j,p,len,ary);
+    }
+  }
 
 }
 
@@ -60,10 +83,10 @@ void traceback(int i, int j, char *p) {
 char * Nussinov::fold_rna() const {
  
   unsigned int len = get_len();
-  int** ary = new int*[len];
+  int **ary = new int*[len];
   for(int i = 0; i < len; ++i) {
     ary[i] = new int[len];
-    memset(&(ary[i]),0,len*sizeof(int));
+    memset(ary[i],0,len*sizeof(int));
   }
   // p will store the paren-dot string representing the structure.
   char *p = new char[len+1];
@@ -71,8 +94,8 @@ char * Nussinov::fold_rna() const {
   // No hydrogen bonds are possible in less than 5 base pairs
   // start loop at fifth position (i=4)
   for (int z=4;z<len;++z) {
-    for (int i=0;i<(len-z+1);++i) {
-      int j=i+z-1;
+    for (int i=0;i<(len-z);++i) {
+      int j=i+z;
       ary[i][j]= std::max(ary[i+1][j] /* no bond */,
 			  bonds(rna_[i],rna_[j]) +
 			  ary[i+1][j-1] /* bond i<->j */);
@@ -84,7 +107,7 @@ char * Nussinov::fold_rna() const {
     }
   }
   // When we get here the alignment is finished and we need to do the traceback
-
+  traceback(0,len-1,p,len,ary);
   // clean up
   for(int i = 0; i < len; ++i) {
     delete [] ary[i];

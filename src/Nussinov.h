@@ -40,6 +40,8 @@
 class Nussinov {
   /** A copy of the RNA sequence we are to investigate (note, maybe we do not need to make copy). */
   char * rna_;
+
+  void traceback(int i, int j, char *p, int len, int**ary) const;
   
  public:
   Nussinov(const char * rna);
