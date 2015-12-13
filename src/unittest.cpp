@@ -109,7 +109,9 @@ void TestResultStdErr::endTests ()
 {
     TestResult::endTests();
     std::cerr << testCount << " tests run" << std::endl;
-    if (failureCount > 0)
+    if (failureCount == 1)
+      std::cerr << "****** There was one failure";
+    else if (failureCount > 1)
         std::cerr << "****** There were " << failureCount << " failures";
     else
       std::cerr << "There were no test failures";

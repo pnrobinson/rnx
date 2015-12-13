@@ -27,11 +27,11 @@
  *
  * \note Attempts at zen rarely work.
  *
- * \author (last to touch it) $Author: bv $
+ * \author Peter Robinson
  *
- * \version $Revision: 0.0.1 $
+ * \version  0.0.2
  *
- * \date $Date: 2005/04/14 14:16:20 $
+ * \date $Date: 2015/12/11 $
  *
  * Contact: peter.robinson@charite.de
  *
@@ -49,15 +49,18 @@ class Nussinov {
   char * structure_;
 
 
-  void traceback(int i, int j);
+  void traceback2(int i, int j);
+  void traceback();
+  void debugPrintMatrix();
   
  public:
+  /** @param rna a string (upper case) of RNA nucleotides */
   Nussinov(const char * rna);
   ~Nussinov();
   /** Get length of the RNA sequence being analysed. */
   unsigned int get_len() const;
-  /** Return a parenthesis-dot representation of the RNA secondary structure. */
-  char * fold_rna();
+  /** Return a parenthesis-dot representation of the RNA secondary structure. Note that clients should make a copy of this string if they need to alter it*/
+  const char * fold_rna();
 
   
 

@@ -48,8 +48,9 @@ inline std::ostream& operator<< (std::ostream& stream, const Failure& failure)
 {
   stream 
     << failure.fileName.c_str ()
-    << "(" << failure.lineNumber << "):"
-    << "Failure: \"" << failure.condition.c_str () << "\" " 
+    << " (l. " << failure.lineNumber << "): "
+    << failure.testName 
+    << " failed: \"" << failure.condition.c_str () << "\" " 
     << std::endl;
   
   return stream;
@@ -81,7 +82,7 @@ class Test : public TestSetup
   class classUnderTest##name##Test : public Test	\
   {							\
   public:								\
-    classUnderTest##name##Test () : Test (#name "Test") {}		\
+    classUnderTest##name##Test () : Test (#name "_Test") {}		\
       void setup() {};							\
       void teardown() {};						\
       void runTest (TestResult& result_);				\
@@ -190,55 +191,50 @@ class Test : public TestSetup
     }\
 }
 
-class Failure;
 
+/**
+ * This class encapsultes the results of unit testing 
+ */
 class TestResult
 {
-public:
-    TestResult ();
-    virtual ~TestResult() {};
-
-	virtual void testWasRun ();
-	virtual void startTests ();
-	virtual void addFailure (const Failure & failure);
-	virtual void endTests ();
-
-    int getFailureCount() const { return failureCount; }
-
-protected:
-    int failureCount;
-    int testCount;
-    time_t startTime_;
-    int secondsElapsed;
+ public:
+  TestResult ();
+  virtual ~TestResult() {};
+  virtual void testWasRun ();
+  virtual void startTests ();
+  virtual void addFailure (const Failure & failure);
+  virtual void endTests ();
+  int getFailureCount() const { return failureCount; }
+  
+ protected:
+  int failureCount;
+  int testCount;
+  time_t startTime_;
+  int secondsElapsed;
 };
 
 
 class TestResultStdErr : public TestResult
 {
-public:
-    virtual void addFailure (const Failure & failure);
-    virtual void endTests ();
+ public:
+  virtual void addFailure (const Failure & failure);
+  virtual void endTests ();
 };
 
 
 class TestResultDebugOut : public TestResult
 {
  public:
-    virtual void startTests ();
-    virtual void addFailure (const Failure & failure);
-    virtual void endTests ();
+  virtual void startTests ();
+  virtual void addFailure (const Failure & failure);
+  virtual void endTests ();
 };
 
 
-
-
-//class Test;
-class TestResult;
 /**
-*TestRegistry is a primitive singleton which collects all of the
-* tests in a system and allows them to be executed.  To see how
-* tests are added to the TestRegistry look at the Test.h file
-*/
+ * TestRegistry is a primitive singleton which collects all of the
+ * tests in a system and allows them to be executed.  
+ */
 class TestRegistry
 {
  public:
