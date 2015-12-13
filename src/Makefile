@@ -28,5 +28,6 @@ rnx: rnx.cpp
 
 
 clean:
-	rm $(objects) maintest
+	-rm $(objects) maintest
 	-rm *~
+	-rm rnx

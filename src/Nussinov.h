@@ -49,8 +49,9 @@ class Nussinov {
   char * structure_;
 
 
-  void traceback2(int i, int j);
+  /** Find an optimal secondary structure (this method is called by fold_rna). */
   void traceback();
+  /** Can be used to print out the DP matrix for debugging purposes. */
   void debugPrintMatrix();
   
  public:

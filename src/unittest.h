@@ -26,7 +26,7 @@ class TestSetup {
 
 
 /**
- * This class encapsulates the information that accrues upon a test error.
+ * This class encapsulates the information that acrues upon a test error.
  */
 class Failure
 {
@@ -43,7 +43,9 @@ class Failure
   long lineNumber;
 };
 
-
+/**
+ * The output that is shown for each Test that fails.
+ */
 inline std::ostream& operator<< (std::ostream& stream, const Failure& failure)
 {
   stream 
@@ -52,7 +54,6 @@ inline std::ostream& operator<< (std::ostream& stream, const Failure& failure)
     << failure.testName 
     << " failed: \"" << failure.condition.c_str () << "\" " 
     << std::endl;
-  
   return stream;
 }
 

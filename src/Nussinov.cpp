@@ -73,33 +73,6 @@ int bonds(char a, char b) {
 
 
 void
-Nussinov::traceback2(int i, int j) {
-  unsigned int len = get_len();
-  if (i>=j || i>=len)
-    return;
-  int cij=mat_[i][j];
-  if (cij==0) {
-    for (int k=i;k<=j;++k)
-      structure_[k]='.';
-  }
-  if (cij==mat_[i+1][j]) { /* position i is unbonded */
-    structure_[i]='.';
-    return traceback2(i+1,j);
-  }
-  if (cij== bonds(rna_[i],rna_[j]) + mat_[i+1][j-1]) { /* i is bonded with j */
-    structure_[i]='(';
-    structure_[j]=')';
-    return traceback2(i+1,j-1);
-  }
-  for (int k=i+1;k<j;++k) {
-    if (cij==mat_[i][k] + mat_[k+1][j]) {
-      traceback2(i,k);
-      traceback2(k+1,j);
-    }
-  }
-}
-
-void
 Nussinov::traceback() {
   std::stack<std::pair<int,int> > stck;
   int len = get_len();
@@ -110,7 +83,6 @@ Nussinov::traceback() {
     int i = stck.top().first;
     int j = stck.top().second;
     stck.pop();
-    std::cout << "i=" << i << " j=" << j << " bonds = " << bonds(rna_[i],rna_[j]) << std::endl;
     if (i>=j) {
       continue;
     } else if (mat_[i+1][j]==mat_[i][j]) {
@@ -121,7 +93,6 @@ Nussinov::traceback() {
       stck.push(std::make_pair(i,j-1));
     } else if (mat_[i+1][j-1] + bonds(rna_[i],rna_[j]) == mat_[i][j]) {
       /* match base i<->j */
-      std::cout << "match at i=" << i << " and j=" << j << std::endl;
       structure_[i]='(';
       structure_[j]=')';
       stck.push(std::make_pair(i+1,j-1));
@@ -188,16 +159,10 @@ const char * Nussinov::fold_rna() {
   /* 1. Initialisation. (p. 270). Not needed because we initialise the
      entire matrix mat_ to 0. */
   /* 2. Recursion. Starting with all sequences of length 2 up to L */
-  std::cout << rna_ << std::endl;
   for (unsigned int j=1;j<len;++j) {
     for (unsigned int i=0;i<j-1;++i) {
       int mx = std::max(mat_[i+1][j],mat_[i][j-1]); /* no bond for i or j*/
-      std::cout << "i=" << i << " (" << rna_[i] << ") j="<<j<<" ("<< rna_[j] 
-		<< "): bonds = " << bonds(rna_[i],rna_[j]) << std::endl;
-      std::cout << "mx (no bond)=" << mx   << std::endl;
-      std::cout << "bonds(rna_[i],rna_[j]) + mat_[i+1][j-1] =" << bonds(rna_[i],rna_[j]) + mat_[i+1][j-1]  << std::endl;
       mat_[i][j] = std::max(mx, bonds(rna_[i],rna_[j]) + mat_[i+1][j-1] ); /* bond i<->j */
-      std::cout << "mat_[" << i << "][" << j<< "]=" << mat_[i][j] << std::endl;
       /* now check for pairs of subalignments */
       for (int k=i+1;k<j;++k) {
 	/* now check for pairs of subalignments */
@@ -208,7 +173,7 @@ const char * Nussinov::fold_rna() {
   }
   // When we get here the alignment is finished and we need to do the traceback
   traceback();
-  debugPrintMatrix();
+  //debugPrintMatrix();
   return structure_;
 }
 
