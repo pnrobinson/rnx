@@ -6,17 +6,20 @@
  * A class to perform Nussinov-based alignments of RNA secondary structure.
  * Still prototyping.
  * @author Peter Robinson
- * @version 0.0.1 (7 December 2015)
+ * @version 0.0.2 (11 December 2015)
  */
 
 
+/**
+ * \defgroup Folding RNA Folding Algorithms
+ */
 
 
 /**
  * \class Nussinov
  *
  * \ingroup Folding
- * (Note, this needs exactly one \defgroup somewhere)
+ * 
  *
  * \brief Class for folding an RNA sequence according to Nussinov
  *
@@ -40,8 +43,13 @@
 class Nussinov {
   /** A copy of the RNA sequence we are to investigate (note, maybe we do not need to make copy). */
   char * rna_;
+  /** The Nussinov matrix containing the number of bonds for the subsequence i,j) */
+  int ** mat_;
+  /** The parenthesis - dot representation of the secondary structure of the current RNA */
+  char * structure_;
 
-  void traceback(int i, int j, char *p, int len, int**ary) const;
+
+  void traceback(int i, int j);
   
  public:
   Nussinov(const char * rna);
@@ -49,7 +57,7 @@ class Nussinov {
   /** Get length of the RNA sequence being analysed. */
   unsigned int get_len() const;
   /** Return a parenthesis-dot representation of the RNA secondary structure. */
-  char * fold_rna() const;
+  char * fold_rna();
 
   
 

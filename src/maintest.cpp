@@ -319,7 +319,6 @@ TEST (Nussinov, fold1) {
   char * folded = nuss->fold_rna();
   CHECK_CSTRINGS_EQUAL("(...)",folded);
   delete nuss;
-  delete folded;
 }
 
 
@@ -329,7 +328,6 @@ TEST (Nussinov, fold2) {
   char * folded = nuss->fold_rna();
   CHECK_CSTRINGS_EQUAL("(....)",folded);
   delete nuss;
-  delete folded;
 }
 
 TEST (Nussinov, fold3) {
@@ -338,7 +336,6 @@ TEST (Nussinov, fold3) {
   char * folded = nuss->fold_rna();
   CHECK_CSTRINGS_EQUAL("(.....)",folded);
   delete nuss;
-  delete folded;
 }
 
 TEST (Nussinov, fold4) {
@@ -347,7 +344,6 @@ TEST (Nussinov, fold4) {
   char * folded = nuss->fold_rna();
   CHECK_CSTRINGS_EQUAL("((.....))",folded);
   delete nuss;
-  delete folded;
 }
 
 
