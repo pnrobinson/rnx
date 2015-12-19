@@ -71,10 +71,10 @@ TEST (fold3, Nussinov) {
 }
 
 TEST (fold4, Nussinov) {
-  const char * rna= "CGAACG";
+  const char * rna= "CGAAUCG";
   Nussinov * nuss = new Nussinov(rna);
   const char * folded = nuss->fold_rna();
-  CHECK_CSTRINGS_EQUAL("((..))",folded);
+  CHECK_CSTRINGS_EQUAL("((...))",folded);
   delete nuss;
 }
 
@@ -88,17 +88,22 @@ TEST (fold5, Nussinov) {
 }
 
 
-/**
- * Note that the result returned by the Nussinov algorithm
- * for this string is correct by not really optimal. Nussinov
- * is not intended to be a sophisticated algorithm so we will
- * accept it.
- */
+
 TEST (fold6, Nussinov) {
   const char * rna= "GGGAAAUCC";
   Nussinov * nuss = new Nussinov(rna);
   const char * folded = nuss->fold_rna();
-  CHECK_CSTRINGS_EQUAL(".((.(.)))",folded);
+  CHECK_CSTRINGS_EQUAL("(((...)))",folded);
+  delete nuss;
+}
+
+
+
+TEST (fold7, Nussinov) {
+  const char * rna= "ACUCGAUCCGAG";
+  Nussinov * nuss = new Nussinov(rna);
+  const char * folded = nuss->fold_rna();
+  CHECK_CSTRINGS_EQUAL(".((((...))))",folded);
   delete nuss;
 }
 

@@ -1,7 +1,3 @@
-
-
-
-
 #include "Nussinov.h"
 
 #include <cstring>
@@ -12,13 +8,30 @@
 
 
 
-/*
+/**
  * The constructor allocates memory for the class variables 
  * rna_ (the original sequence)
  * mat_ (a two-dimensionary matrix for the Nussinov algorithm)
  * structure_ (a string of parentheses and dots representing the structure).
+ * @param rna a string (upper case) of RNA nucleotides 
  */
-Nussinov::Nussinov(const char * rna) {
+Nussinov::Nussinov(const char * rna): h_(3) {
+  init(rna);
+}
+
+/**
+ * This constructor allows client code to adjust the minimum
+ * distance between two baired based (\code{h_}).
+ */
+Nussinov::Nussinov(const char * rna, unsigned int h): h_(h) {
+  init(rna);
+}
+
+/**
+ * Allocate memory for the constructors
+ * @param rna a string (upper case) of RNA nucleotides 
+ */
+void Nussinov::init(const char * rna) {
   unsigned int len = strlen(rna);
   rna_ =  new char[len + 1];
   strcpy(rna_, rna);
@@ -31,6 +44,8 @@ Nussinov::Nussinov(const char * rna) {
   memset(structure_, '\0', len+1 );
 }
 
+
+
 Nussinov::~Nussinov() {
   unsigned int len = get_len();
   delete [] rna_;
@@ -42,6 +57,7 @@ Nussinov::~Nussinov() {
   delete [] structure_;
 }
 
+/** @return length of the RNA sequence being analysed. */
 unsigned int Nussinov::get_len() const {
   return strlen(rna_);
 }
@@ -111,7 +127,11 @@ Nussinov::traceback() {
 
 
 
-
+/**
+ * Prints the DP matrix to the shell, and can
+ * be used for debugging with relatively short
+ * RNA sequences.
+ */
 void Nussinov::debugPrintMatrix() {
   std::cout << std::endl;
   //std::cout << "\t" << rna_[0];
@@ -137,21 +157,31 @@ void Nussinov::debugPrintMatrix() {
   std::cout << std::endl;
 }
 
-/*
+/**
+ * Return a parenthesis-dot representation of the RNA secondary structure. 
+ * Note that clients should make a copy of this string if they need to alter it
  * The implementation of the Nussinov algorithm has been
  * adapted from Chapter 10.2 of Durbin et al., Biological
  * Sequence Analysis (1998) Cambridge University Press.
- * PSEUDOCODE   
- * for i = 2 to L do s(i,i-1) = 0; 
- * for i = 1 to L do s(i,i) = 0; 
- * for j = 2 to L do 
- *   for i = 1 to j-1 do 
- *     s(i,j) = max { 
+ * Note that the following pseudocode uses 1-based numbering. The for loops
+ * iterate through each diagonal above the main diagonal one at a time, ensuring
+ * that all information needed for the Dynamic Programming step is available when needed.
+ * \code
+ * for i = 2 to L
+ *   s[i,i-1] = 0; // initialize subdiagonal 
+ * for i = 1 to L
+ * s[i,i] = 0;     // initialize main diagonal 
+ * for s = 2 to L
+ *   i = 0;  
+ *   for j = s to L
+ *     i=i+1
+ *     s[i,j) = max { 
  *           s(i+1,j), 
  *           s(i,j-1), 
  *           s(i+1,j-1) + d(i,j), 
  *           max i<k<j [s(i,k) + s(k+1,j)] 
- *          } 
+ *          }
+ * \endcode
  *
  */
 const char * Nussinov::fold_rna() {
@@ -159,8 +189,12 @@ const char * Nussinov::fold_rna() {
   /* 1. Initialisation. (p. 270). Not needed because we initialise the
      entire matrix mat_ to 0. */
   /* 2. Recursion. Starting with all sequences of length 2 up to L */
-  for (unsigned int j=1;j<len;++j) {
-    for (unsigned int i=0;i<j-1;++i) {
+  /* Note we start at the subdiagonal after h_ bounds, this prevents
+     bairs from being taken that are too close together. */
+  for (unsigned int s=1+h_;s<len;++s) {
+    unsigned int i=0;
+    for (unsigned int j=s;j<len;++j,++i) {
+   
       int mx = std::max(mat_[i+1][j],mat_[i][j-1]); /* no bond for i or j*/
       mat_[i][j] = std::max(mx, bonds(rna_[i],rna_[j]) + mat_[i+1][j-1] ); /* bond i<->j */
       /* now check for pairs of subalignments */
@@ -176,4 +210,5 @@ const char * Nussinov::fold_rna() {
   //debugPrintMatrix();
   return structure_;
 }
+
 
