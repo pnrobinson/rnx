@@ -3,6 +3,7 @@
 #include "unittest.h"
 #include "Sequence.h"
 #include "Nussinov.h"
+#include "EnergyFunction2.h"
 
 #include <string>
 #include <vector>
@@ -105,6 +106,16 @@ TEST (fold7, Nussinov) {
   const char * folded = nuss->fold_rna();
   CHECK_CSTRINGS_EQUAL(".((((...))))",folded);
   delete nuss;
+}
+
+
+
+TEST (getdatadir,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  CHECK_CSTRINGS_EQUAL(dir,dattab.get_data_dir());
+
+
 }
 
 
