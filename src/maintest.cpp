@@ -228,6 +228,44 @@ TEST (getdestabilizingenergy_loop3,EnergyFunction2) {
   CHECK_INTS_EQUAL(770,d);
 }
 
+TEST (getstackenergy_1,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  int d = dattab.get_stack_energy(1,1,1,1);
+  CHECK(d>9999); // should be infinity
+  d = dattab.get_stack_energy(1,4,1,4);
+  CHECK_INTS_EQUAL(-90,d); // AX/UY,row 1 column 4: -0.9
+  d = dattab.get_stack_energy(1,4,2,3);
+  CHECK_INTS_EQUAL(-220,d); // AX/UY,row 2 column 3: -2.2
+  d = dattab.get_stack_energy(4,3,3,2);
+  CHECK_INTS_EQUAL(-140,d); // AX/UY,row 2 column 3: -2.2
+}
+
+TEST (getstackenergy_2,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  int d = dattab.get_tstackh_energy(1,1,1,1);
+  CHECK(d>9999); // should be infinity
+  d = dattab.get_tstackh_energy(1,4,1,4);
+  CHECK_INTS_EQUAL(-30,d); // AX/UY,row 1 column 4: -0.3
+  d = dattab.get_tstackh_energy(1,4,2,3);
+  CHECK_INTS_EQUAL(-150,d); // AX/UY,row 2 column 3: -2.2
+  d = dattab.get_tstackh_energy(4,3,3,2);
+  CHECK_INTS_EQUAL(-120,d); // AX/UY,row 2 column 3: -2.2
+}
+
+TEST (getstackenergy_3,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  int d = dattab.get_tstacki_energy(1,1,1,1);
+  CHECK(d>9999); // should be infinity
+  d = dattab.get_tstacki_energy(1,4,1,4);
+  CHECK_INTS_EQUAL(70,d); // AX/UY,row 1 column 4: -0.3
+  d = dattab.get_tstacki_energy(1,4,2,3);
+  CHECK_INTS_EQUAL(70,d); // AX/UY,row 2 column 3: -2.2
+  d = dattab.get_tstacki_energy(4,3,3,2);
+  CHECK_INTS_EQUAL(70,d); // AX/UY,row 2 column 3: -2.2
+}
 
 
 int main(){   

@@ -18,11 +18,7 @@
  * Prototyping. Input files from mfold dat folder
  + //open the files using the C++ method for reading
   ml1.open(miscloop);
-  lo1.open(loop2);#### DONE (loop.dat)
-  st1.open(stackf);
-  th1.open(tstackh);
-  ti1.open(tstacki);
-  tl1.open(tloop);
+ 
   da1.open(danglef);
   in1.open(int22);
   in2.open(int21);
@@ -35,6 +31,11 @@
   i11.open(int11);
   * List of input files
   * - loop.dat (lo1.open(loop2)). DESTABILIZING ENERGIES BY SIZE OF LOOP (corresponds to inter_, bulge_, and hairpin_)
+  * - stack.dat (st1.open(stackf)). stack energies
+  * - tstackh.dat th1.open(tstackh); STACKING ENERGIES : TERMINAL MISMATCHES AND BASE-PAIRS
+  * - tstacki.dat  ti1.open(tstacki); STACKING ENERGIES : TERMINAL MISMATCHES AND BASE-PAIRS (?what is distinction to tstackh?)
+  * - tloop.dat  tl1.open(tloop)
+ 
 
  *
  * \note Still prototyping.
@@ -87,8 +88,14 @@ class Datatable {
   /** DESTABILIZING ENERGIES BY SIZE OF LOOP (HAIRPIN). Loop sizes from 1-30.
    * Note that index 0 is not used. */
   int hairpin_[31];
-  int stack[6][6][6][6],tstkh[6][6][6][6],tstki[6][6][6][6],
-    tloop[maxtloop+1][2],numoftloops,iloop22[6][6][6][6][6][6][6][6],
+  /** stacking energy */
+  int stack_[6][6][6][6];
+  /** STACKING ENERGIES : TERMINAL MISMATCHES AND BASE-PAIRS */
+  int tstkh_[6][6][6][6];
+  /** STACKING ENERGIES : TERMINAL MISMATCHES AND BASE-PAIRS (unclear what distinction is to tstkh?) */
+  int tstki_[6][6][6][6];
+
+  int tloop[maxtloop+1][2],numoftloops,iloop22[6][6][6][6][6][6][6][6],
     iloop21[6][6][6][6][6][6][6],iloop11[6][6][6][6][6][6],
     coax[6][6][6][6],tstackcoax[6][6][6][6],coaxstack[6][6][6][6],
     tstack[6][6][6][6],tstkm[6][6][6][6],auend,gubonus,cint,cslope,c3,
@@ -103,13 +110,20 @@ public:
 
   const char* get_data_dir() const;
 
-  int get_destabilizing_energy_internal_loop(unsigned int loop_size);
-  int get_destabilizing_energy_bulge_loop(unsigned int loop_size);
-  int get_destabilizing_energy_hairpin_loop(unsigned int loop_size);
-
+  int get_destabilizing_energy_internal_loop(unsigned int loop_size) const;
+  int get_destabilizing_energy_bulge_loop(unsigned int loop_size) const;
+  int get_destabilizing_energy_hairpin_loop(unsigned int loop_size) const;
+  int get_stack_energy(int w, int x, int y, int z) const;
+  int get_tstackh_energy(int w, int x, int y, int z) const;
+  int get_tstacki_energy(int w, int x, int y, int z) const;
+   
 private:
   void input_data();
   void input_loop_dat(std::string &path);
+  void input_stack_dat(std::string &path);
+  void input_tstackh_dat(std::string &path);
+  void input_tstacki_dat(std::string &path);
+  void input_tloop_dat(std::string &path);
 };
 
 
