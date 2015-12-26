@@ -71,7 +71,7 @@ void TestRegistry::run (TestResult& result) {
 
 
 
-TestResult::TestResult() : failureCount (0), testCount(0), secondsElapsed(0)
+TestResult::TestResult() : failureCount (0), testCount(0), secondsElapsed(0), n_checks(0)
 {
   ::time(&startTime_);
 }
@@ -116,6 +116,7 @@ void TestResultStdErr::endTests ()
     else
       std::cerr << "There were no test failures";
     std::cerr << " (time: " << secondsElapsed << " s)." << std::endl;
+    std::cerr << "Performed a total of " << n_checks << " checks. " << std::endl;
 }
 
 

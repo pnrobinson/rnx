@@ -71,9 +71,9 @@ class Test : public TestSetup
   Test (const std::string& testName);
   virtual void	run (TestResult& result);
   virtual void	runTest (TestResult& result) = 0;
-  
  protected:
   std::string name;
+
 };
 
 // The following MACROs are use to define the units tests in client code
@@ -83,7 +83,7 @@ class Test : public TestSetup
   class classUnderTest##name##Test : public Test	\
   {							\
   public:								\
-    classUnderTest##name##Test () : Test (#name "_Test") {}		\
+    classUnderTest##name##Test () : Test (#name "_Test") {}	\
       void setup() {};							\
       void teardown() {};						\
       void runTest (TestResult& result_);				\
@@ -106,15 +106,37 @@ class Test : public TestSetup
 
 #define CHECK(condition) \
     try { \
+       result_.increment_check(); \
     if (!(condition)) \
        result_.addFailure (Failure (#condition, name, __FILE__, __LINE__)); \
     } catch(...) { \
         result_.addFailure (Failure ("Unhandled exception", name, __FILE__, __LINE__)); \
     }
 
+
+
+#define CHECK_INTS_EQUAL(expected,actual)\
+{\
+    try { \
+        result_.increment_check(); \
+        int _expected = (expected);\
+        int _actual = (actual);\
+        if (_expected != _actual) {\
+            char message [80];\
+            sprintf (message, "expected %d but was: %d", _expected, _actual);\
+            result_.addFailure (Failure (message, name, __FILE__, __LINE__));\
+        }\
+    } catch(...) { \
+    result_.addFailure (Failure ("Unhandled exception", name, __FILE__, __LINE__)); \
+    }\
+}
+
+  
+
 #define CHECK_LONGS_EQUAL(expected,actual)\
 {\
     try { \
+       result_.increment_check();			\
         long _expected = (expected);\
         long _actual = (actual);\
         if (_expected != _actual) {\
@@ -131,6 +153,7 @@ class Test : public TestSetup
 #define CHECK_DOUBLES_EQUAL(expected,actual)\
 {\
     try { \
+        result_.increment_check(); \
         double _expected = (expected);\
         double _actual = (actual);\
         if (fabs ((_expected)-(_actual)) > 0.001) {\
@@ -147,6 +170,7 @@ class Test : public TestSetup
 #define CHECK_POINTS_EQUAL(expected,actual)\
 {\
     try { \
+        result_.increment_check(); \
         Point3d _expected = (expected); \
         Point3d _actual = (actual); \
         if (!_actual.Equals(_expected)) { \
@@ -165,6 +189,7 @@ class Test : public TestSetup
 #define CHECK_STRINGS_EQUAL(expected,actual)\
 {\
     try { \
+        result_.increment_check(); \
         std::string _expected(expected);\
         std::string _actual(actual);\
         if (_expected != _actual) {\
@@ -181,6 +206,7 @@ class Test : public TestSetup
 #define CHECK_CSTRINGS_EQUAL(expected,actual)\
   {\
     try { \
+       result_.increment_check(); \
       int c = strcmp(expected,actual); \
       if (c!=0) { \
 	std::string msg=std::string("expected '") + expected +	\
@@ -206,12 +232,13 @@ class TestResult
   virtual void addFailure (const Failure & failure);
   virtual void endTests ();
   int getFailureCount() const { return failureCount; }
-  
+  void increment_check() { n_checks++; }
  protected:
   int failureCount;
   int testCount;
   time_t startTime_;
   int secondsElapsed;
+  unsigned int n_checks;
 };
 
 

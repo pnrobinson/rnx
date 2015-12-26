@@ -1,4 +1,5 @@
-
+#ifndef ENERGY_FUNCTION_2_H
+#define ENERGY_FUNCTION_2_H
 
 /**
  * \defgroup Folding RNA Folding Algorithms
@@ -14,7 +15,27 @@
  * \brief calculate the folding free energy change of a structure. 
  * Based on e2f2 from the mfold package.
  *
- * Right now, FASTA
+ * Prototyping. Input files from mfold dat folder
+ + //open the files using the C++ method for reading
+  ml1.open(miscloop);
+  lo1.open(loop2);#### DONE (loop.dat)
+  st1.open(stackf);
+  th1.open(tstackh);
+  ti1.open(tstacki);
+  tl1.open(tloop);
+  da1.open(danglef);
+  in1.open(int22);
+  in2.open(int21);
+  tri.open(triloop);
+  co1.open(coax);
+  co2.open(tstackcoax);
+  co3.open(coaxstack);
+  st2.open(tstack);
+  tsm.open(tstackm);
+  i11.open(int11);
+  * List of input files
+  * - loop.dat (lo1.open(loop2)). DESTABILIZING ENERGIES BY SIZE OF LOOP (corresponds to inter_, bulge_, and hairpin_)
+
  *
  * \note Still prototyping.
  *
@@ -31,11 +52,11 @@
  *
  */
 
-
+#include <string>
 #if !defined(DEFINES_H)
 #define DEFINES_H
 #define maxfil 100    //maximum length of file names
-#define infinity 9999999  //an arbitrary value given to infinity
+//#define infinity   //an arbitrary value given to infinity
 #define maxtloop 100 //maximum tetraloops allowed (info read from tloop)
 #define maxstructures 1010 //maximum number of structures in ct file
 #define maxbases 10000   //maximum number of bases in a structure
@@ -49,11 +70,24 @@
 #endif
 
 
+
+
+
 class Datatable {
+  static const int s_infinity = 9999999;
   /**  The path to the directory containing the thermodynamic datafiles. */
   char * dirpath_;
-  int poppen [5],maxpen,eparam[11],dangle[6][6][6][3],inter[31],bulge[31],
-    hairpin[31],stack[6][6][6][6],tstkh[6][6][6][6],tstki[6][6][6][6],
+  int poppen [5],maxpen,eparam[11],dangle[6][6][6][3];
+  /** DESTABILIZING ENERGIES BY SIZE OF LOOP (INTERNAL). Loop sizes from 1-30.
+   * Note that index 0 is not used. */
+  int inter_[31];
+  /** DESTABILIZING ENERGIES BY SIZE OF LOOP (BULGE). Loop sizes from 1-30.
+   * Note that index 0 is not used. */
+  int bulge_[31];
+  /** DESTABILIZING ENERGIES BY SIZE OF LOOP (HAIRPIN). Loop sizes from 1-30.
+   * Note that index 0 is not used. */
+  int hairpin_[31];
+  int stack[6][6][6][6],tstkh[6][6][6][6],tstki[6][6][6][6],
     tloop[maxtloop+1][2],numoftloops,iloop22[6][6][6][6][6][6][6][6],
     iloop21[6][6][6][6][6][6][6],iloop11[6][6][6][6][6][6],
     coax[6][6][6][6],tstackcoax[6][6][6][6],coaxstack[6][6][6][6],
@@ -69,7 +103,18 @@ public:
 
   const char* get_data_dir() const;
 
+  int get_destabilizing_energy_internal_loop(unsigned int loop_size);
+  int get_destabilizing_energy_bulge_loop(unsigned int loop_size);
+  int get_destabilizing_energy_hairpin_loop(unsigned int loop_size);
+
 private:
   void input_data();
+  void input_loop_dat(std::string &path);
 };
 
+
+
+
+
+#endif
+/* eof */
