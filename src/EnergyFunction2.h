@@ -35,7 +35,7 @@
   * - tstacki.dat  ti1.open(tstacki); STACKING ENERGIES : TERMINAL MISMATCHES AND BASE-PAIRS (?what is distinction to tstackh?)
   * - tloop.dat  tl1.open(tloop)
   * - miscloop.data  ml1.open(miscloop); Miscellaneous free energy rules Extrapolation for large loops based on polymer theory, internal, bulge or hairpin loops > 30: dS(T)=dS(30)+param*ln(n/30) 
- 
+  * - dangle.dat  da1.open(danglef);
  
 
  *
@@ -82,7 +82,14 @@ class Datatable {
   static const int s_maxtloop = 100;
   /**  The path to the directory containing the thermodynamic datafiles. */
   char * dirpath_;
-  int poppen [5],maxpen,eparam[11],dangle[6][6][6][3];
+  /** the f(m) array (see Ninio for details)  */
+  int poppen_[5];
+  /** asymmetric internal loops: the ninio equation the maximum correction (miscloop.dat) */
+  int maxpen_;
+  /** stores various values from miscloop.dat */
+  int eparam_[11];
+  /** stores values from dangle.dat */
+  int dangle_[6][6][6][3];
   /** DESTABILIZING ENERGIES BY SIZE OF LOOP (INTERNAL). Loop sizes from 1-30.
    * Note that index 0 is not used. */
   int inter_[31];
@@ -107,9 +114,32 @@ class Datatable {
   int iloop22[6][6][6][6][6][6][6][6],
     iloop21[6][6][6][6][6][6][6],iloop11[6][6][6][6][6][6],
     coax[6][6][6][6],tstackcoax[6][6][6][6],coaxstack[6][6][6][6],
-    tstack[6][6][6][6],tstkm[6][6][6][6],auend,gubonus,cint,cslope,c3,
-    efn2a,efn2b,efn2c,triloop[s_maxtloop+1][2],numoftriloops,init,gail;
-  float prelog;
+    tstack[6][6][6][6],tstkm[6][6][6][6];
+  /** terminal AU penalty  (miscloop.dat) */
+  int auend_;
+  /** bonus for GGG hairpin  */
+  int gubonus_;
+  /** c hairpin intercept  */
+  int cint_;
+  /** c hairpin slope (miscloop.dat)*/
+  int cslope_;
+  /** c hairpin of 3 */
+  int c3_;
+  /** constant multi-loop penalty for efn2 */
+  int efn2a_;
+  /** efn2 multibranched loops free base penalty. */
+  int efn2b_;
+  /** efn2 efn2 multibranched loops helix penalty */ 
+  int efn2c_;
+  int triloop[s_maxtloop+1][2];
+  int numoftriloops;
+  /** Intermolecular initiation free energy (miscloop.dat) */
+  int init_;
+  /** GAIL Rule (Grossly Asymmetric Interior Loop Rule) (on/off <-> 1/0)  */
+  int gail_;
+  /** Extrapolation for large loops based on polymer theory 
+   * internal, bulge or hairpin loops > 30: dS(T)=dS(30)+param*ln(n/30) (from miscloop.dat) */
+  float prelog_;
   /**
    * @param directory_path The path to the directory containing the thermodynamic datafiles.
    */
@@ -126,6 +156,19 @@ public:
   int get_tstackh_energy(int w, int x, int y, int z) const;
   int get_tstacki_energy(int w, int x, int y, int z) const;
   int get_tetraloop_energy(const char *seq) const;
+  float get_prelog() const;
+  int get_maxpen() const;
+  int get_poppen(unsigned int i) const;
+  int get_constant_multiloop_penalty() const;
+  int get_constant_efn2_multiloop_penalty() const;
+  int get_terminal_AU_penalty() const;
+  int get_GU_bonus() const;
+  int get_c_hairpin_intercept() const;
+  int get_c_hairpin_slope() const;
+  int get_c_hairpin_of_3() const;
+  int get_intermolecular_initiation_free_energy() const;
+  int get_GAIL() const;
+  int get_dangle_energy(int w, int x, int y, int z) const;
    
 private:
   void input_data();
@@ -135,6 +178,7 @@ private:
   void input_tstacki_dat(std::string &path);
   void input_tloop_dat(std::string &path);
   void input_miscloop_dat(std::string &path);
+  void input_dangle_dat(const std::string &path);
 };
 
 

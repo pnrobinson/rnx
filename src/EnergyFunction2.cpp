@@ -20,8 +20,11 @@
 
 Datatable::Datatable(const char* directory_path) {
   size_t len = strlen(directory_path);
+  if (directory_path[len-1] == '/') {
+    len--; /* Only copy up to but not including the final '/' if there is one */
+  }
   dirpath_ = new char[len+1];
-  strcpy(dirpath_,directory_path);
+  strncpy(dirpath_,directory_path,len);
   input_data();
 }
 
@@ -55,7 +58,8 @@ bool file_exists(const char * path) {
 
 void Datatable::input_data() {
   std::string files[] = {"loop.dat","stack.dat", "tstackh.dat",
-			 "tstacki.dat", "tloop.dat", "miscloop.dat"};
+			 "tstacki.dat", "tloop.dat", "miscloop.dat",
+			 "dangle.dat",};
   int n_elem = sizeof(files)/sizeof(files[0]);
   for (unsigned int i=0;i<n_elem;++i) {
     std::stringstream ss;
@@ -92,11 +96,16 @@ void Datatable::input_data() {
   ss << dirpath_ <<  "/tloop.dat";
   s = ss.str();
   input_tloop_dat(s);
-   /* 6) miscloop */
+  /* 6) miscloop */
   ss.str(std::string()); /* reset */
   ss << dirpath_ <<  "/miscloop.dat";
   s = ss.str();
   input_miscloop_dat(s);
+  /* 7) dangle */
+  ss.str(std::string()); /* reset */
+  ss << dirpath_ <<  "/dangle.dat";
+  s = ss.str();
+  input_dangle_dat(s);
    
 }
 
@@ -302,9 +311,142 @@ void Datatable::input_tstacki_dat(std::string &path) {
 }
 
 
-
+/**
+ * Input the file "miscloop.dat" (Miscellaneous free energy rules ).
+ * the key sequence "-->" now indicates a record in that file
+ */
 void Datatable::input_miscloop_dat(std::string &path) {
+  std::ifstream infile(path.c_str());
+  if (! infile.is_open() ) {
+    std::cerr << "[ERROR] could not initialize " << path << " for I/O" << std::endl;
+  }
+  std::string token;
+  std::string temp;
+  int count, i, j, k , l;
 
+
+  infile >> token;
+  while(token !=  "-->")
+    infile >> token;
+
+  infile >> temp;
+  prelog_ = atof(temp.c_str()) * 100.0;
+  //data->prelog = (data->prelog)*100.0;
+
+ 
+  infile >> token;
+  while(token != "-->")
+    infile >> token;
+  infile >> temp;
+  maxpen_ = static_cast<int>( atof(temp.c_str())*100.0 + .5);
+
+
+  infile >> token;
+  while(token != "-->")
+    infile >> token;
+
+  for (count=1; count<= 4; count ++){
+    infile >> temp;
+    poppen_[count] = static_cast<int> (atof(temp.c_str())*100.0 + .5);
+  } 										//this reads float values, converts
+  // 	them int and assigns them into
+  //		array poppen
+
+  
+  infile >> token;
+  while(token != "-->")
+    infile >> token;
+  // assign some variables that are"hard-wired" into code
+  eparam_[1] = 0; 						
+  eparam_[2] = 0; 					
+  eparam_[3] = 0;
+  eparam_[4] = 0;
+  
+  infile >> temp;
+  eparam_[5] = static_cast<int> ( floor (atof(temp.c_str())*100.0+.5) );  //constant multi-loop penalty
+
+  infile >> temp;
+  eparam_[6] = static_cast<int> ( floor (atof(temp.c_str())*100.0+.5) ); //(int) floor (temp*100.0+.5);
+
+  eparam_[7] = 30;
+  eparam_[8] = 30;
+  eparam_[9] = -500;
+
+  infile >> temp;
+  eparam_[10] =  static_cast<int> ( floor (atof(temp.c_str())*100.0+.5) ); //(int) floor (temp*100.0+.5);
+
+
+  infile >> token;
+  while(token != "-->")
+    infile >> token;
+
+  infile >> temp;
+
+  if (infile.peek()==EOF) {
+    //these are old energy rules -- treat the other constants properly
+    std::cerr << "[WARNING]: Attempt to use old energy rules (miscloop.dat). "
+	      << "Please obtain modern file that continues with \"efn2 multibranched loops\"" << std::endl;
+    exit(1);
+  }
+ 
+  efn2a_ = static_cast<int> ( floor (atof(temp.c_str())*100.0+.5));  //constant multi-loop penalty for efn2
+
+  infile >> temp;
+  efn2b_=  static_cast<int> ( floor (atof(temp.c_str())*100.0+.5));  //(int) floor(temp*100.0+.5);
+
+  infile >> temp;
+  efn2c_=  static_cast<int> ( floor (atof(temp.c_str())*100.0+.5));  //(int) floor(temp*100.0+.5);
+
+  //now read the terminal AU penalty:
+  infile >> token;
+  while(token != "-->")
+    infile >> token;
+  infile >> temp;
+
+  auend_ = static_cast<int> ( floor (atof(temp.c_str())*100.0+.5)); //(int) floor (temp*100.0+.5);
+
+  //now read the GGG hairpin bonus:
+  infile>>token;
+  while(token != "-->")
+    infile>>token;
+  infile >> temp;
+  gubonus_ = static_cast<int> ( floor (atof(temp.c_str())*100.0+.5)); //(int) floor (temp*100.0+.5);
+ 
+  //now read the poly c hairpin penalty slope:
+  infile >> token;
+  while(token != "-->")
+    infile>>token;
+  infile >> temp;
+  cslope_ = static_cast<int> ( floor (atof(temp.c_str())*100.0+.5)); //(int) floor (temp*100.0+.5);
+
+  //now read the poly c hairpin penalty intercept:
+  infile>>token;
+  while(token != "-->")
+    infile>>token;
+  infile >> temp;
+  cint_ = static_cast<int> ( floor (atof(temp.c_str())*100.0+.5)); //(int) floor (temp*100.0+.5);
+
+  //now read the poly c penalty for a loop of 3:
+  infile >>token;
+  while(token !=  "-->")
+    infile>>token;
+  infile >> temp;
+  c3_ = static_cast<int> ( floor (atof(temp.c_str())*100.0+.5)); //(int) floor (temp*100.0+.5);
+
+  // Intermolecular initiation free energy 
+
+  infile >>token;
+  while(token != "-->")
+    infile>>token;
+  infile >> temp;
+  init_ =  static_cast<int> ( floor (atof(temp.c_str())*100.0+.5)); //(int) floor (temp*100.0+.5);
+  
+  //now read the GAIL rule indicator
+  infile >> token;
+  while(token != "-->")
+    infile>>token;
+  infile>> temp;
+  gail_ =  static_cast<int> ( floor (atof(temp.c_str()) +.5)); //(int) floor (temp+.5);
 }
 
 
@@ -323,9 +465,24 @@ int tonumi(const char *base)	{
 }
 
 /**
- * Input file "tloop.dat". The tetraloop bonus table. For hairpin loops with four unpaired nucleotides, this table is consulted. 
- * If the sequence (starting with the 5' last paired nucleotide and finishing with its 3' paired nucleotide) appears in the table, 
+ * Input file "tloop.dat". The tetraloop bonus table. 
+ * For hairpin loops with four unpaired nucleotides, 
+ * this table is consulted. 
+ * If the sequence (starting with the 5' last paired
+ * nucleotide and finishing with its 3' paired nucleotide) 
+ * appears in the table, 
  * the bonus is applied to the hairpin's stability.
+ * The file has 30 entries of the type
+ * <pre>
+ * Seq    Energy 
+ ------------- 
+ GGGGAC -3.0  
+ GGUGAC -3.0  
+ ...
+ </pre>
+ * Each of the six-mer sequences is transformed into an integer
+ * by the function tonumi, and entries such as -3.0 are stored
+ * as -300 (integers).
 */
 void Datatable::input_tloop_dat(std::string &path) {
   std::ifstream infile(path.c_str());
@@ -382,8 +539,6 @@ void Datatable::input_tloop_dat(std::string &path) {
     base[0] = token[5];
     strcpy(base+1, "\0");
     tloop_[numoftloops_][0] = tloop_[numoftloops_][0]+ 3125*tonumi(base);
-    //cout << base << "\n";
-    //cout << data->tloop[data->numoftloops][0] << "\n";
     infile >> temp;
     tloop_[numoftloops_][1] = (int) floor (100.0*atof(temp)+0.5);
     //std::cout<< "ntloops[0]="<< numoftloops_ << ": "<<base <<  ":"<< tloop_[numoftloops_][0] << std::endl;
@@ -393,20 +548,103 @@ void Datatable::input_tloop_dat(std::string &path) {
 
 }
 
+/** read info from dangle.dat 
+ *
+ * \verbatim
+    X                      
+  ------------------     
+   A    C    G    U       
+  ------------------      
+      5' --> 3'         
+         AX             
+         A                  
+      3' <-- 5'       
+  .     .     .     .   
+\endverbatim
+* This file shows the energies for dangling bases.
+* Presents the free energy of dangling ends (5' or 3'). These energies are used in multibranch and exterior loops.
+* In the above example, the X is dangling from the 3' end of the upper strand. This is the case for the first
+* four rows. In the last four rows, the X is dangling from the 5' end of the lower strand.
+* Assuming we have indices W,X,Y,Z., the W is the row (1-8), the X is the column (1-4)
+
+*/
+void Datatable::input_dangle_dat(const std::string &path) {
+  std::ifstream infile(path.c_str());
+  char base[110];
+  char temp[300];
+  if (! infile.is_open() ) {
+    std::cerr << "[ERROR] could not initialize " << path << " for I/O" << std::endl;
+  }
+  std::string token;
+  int count, i,j,k,l;
+
+  //add to dangle the case where X (represented as 0) is looked up
+  for (l = 1; l <=2; l++){
+    for (i = 0; i <=5; i++){
+      if ((i!=0)&&(i!=5))
+	for (count=1; count <=60; count++)
+	  infile >> token;
+      for (j=0; j<=5; j++) {
+	for (k=0; k<=5; k++) {
+	  if ((i==0)||(j==0)||(k==0)) {
+	    dangle_[i][j][k][l] = 0;
+	  } else if ((i==5)||(j==5)) {
+	    dangle_[i][j][k][l] = s_infinity;
+	  } else if ((i!=5)&&(j!=5)&&(k==5)) { /* note there was only one "&" (j!=5)&(k==5) in original code! */
+	    dangle_[i][j][k][l] = 0;
+	  } else {
+	    infile >> token;
+	    //cout << lineoftext<<"\n";
+	    if (token !=  "."){
+	      dangle_[i][j][k][l] = static_cast<int> ( floor (100.0*(atof(token.c_str()))+.5));
+	    } else {
+	      dangle_[i][j][k][l] = s_infinity;
+	    }
+	  }
+	}
+      }
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * This function is intended for testing only and can be removed at a later time
+ * if desired. It takes a 6mer sequence (of the type found in tloop.dat) and
+ * looks up the tetraloop energy. It first needs to find the entry that
+ * corresponds to the 6mer sequence (there are only 30 of them in the file).
+ * If the sequence is not found, return 0. \Note Still trying to understand
+ * tloop.dat.
+ */
 int Datatable::get_tetraloop_energy(const char *seq) const {
   int y=0;
+  char base[2];
+  base[1]='\0';
   size_t len = strlen(seq);
   if (len != 6)
     return 0;
-  y = tonumi(seq);
-  y = y +  5*tonumi(seq+1);
-  y = y +  25*tonumi(seq+2);
-  y = y +  125*tonumi(seq+3);
-  y = y +  625*tonumi(seq+4);
-  y = y +  3125*tonumi(seq+5);
-  std::cout << "get tloop y=" << y << std::endl;
+  base[0]=seq[0];
+  y = tonumi(base);
+  base[0]=seq[1];
+  y = y + 5*tonumi(base);
+  base[0]=seq[2];
+  y = y + 25*tonumi(base);
+  base[0]=seq[3];
+  y = y + 125*tonumi(base);
+  base[0]=seq[4];
+  y = y + 625*tonumi(base);
+  base[0]=seq[5];
+  y = y + 3125*tonumi(base);
   for (int i=1;i<s_maxtloop;++i) {
-    std::cout << "tloop[" << i << "]=" << tloop_[i][0] << std::endl;
     if (tloop_[i][0] == y)
       return tloop_[i][1];
   }
@@ -445,5 +683,58 @@ int Datatable::get_tstacki_energy(int w, int x, int y, int z) const {
   return tstki_[w][x][y][z];
 }
 
+float Datatable::get_prelog() const {
+  return prelog_;
+}
 
+int Datatable::get_maxpen() const {
+  return maxpen_;
+}
 
+int Datatable::get_poppen(unsigned int i) const{
+  return poppen_[i];
+}
+
+/**
+ * This value corresponds to multibranched loops 
+ offset in the miscloop file (3.4, should be 340). */
+int Datatable::get_constant_multiloop_penalty() const {
+  return eparam_[5];
+}
+
+/** constant multi-loop penalty for efn2 */
+int Datatable::get_constant_efn2_multiloop_penalty() const {
+  return efn2a_;
+}
+
+/** @return terminal AU penalty (auend_, from miscloop.dat)  */
+int Datatable::get_terminal_AU_penalty() const {
+  return auend_;
+}
+
+int Datatable::get_GU_bonus() const {
+  return gubonus_;
+}
+
+int Datatable::get_c_hairpin_intercept() const {
+  return  cint_;
+}
+ 
+int Datatable::get_c_hairpin_slope() const {
+  return cslope_;
+}
+int Datatable::get_c_hairpin_of_3() const{
+  return c3_;
+}
+
+int Datatable::get_intermolecular_initiation_free_energy() const {
+  return init_;
+}
+  
+int Datatable::get_GAIL() const {
+  return gail_;
+}
+
+int Datatable::get_dangle_energy(int w, int x, int y, int z) const {
+  return dangle_[w][x][y][z];
+}

@@ -273,11 +273,134 @@ TEST (getstackenergy_3,EnergyFunction2) {
 TEST (tloop,EnergyFunction2) {
   const char *dir = "../dat";
   Datatable dattab(dir);
-  int d = dattab.get_tetraloop_energy("GGUGAC");
-  CHECK_INTS_EQUAL(-300,d); // 
+  int d = dattab.get_tetraloop_energy("GGGGAC");
+  CHECK_INTS_EQUAL(-300,d); //  -3.0
   d = dattab.get_tetraloop_energy("CGAAAG");
-  CHECK_INTS_EQUAL(-300,d); // 
+  CHECK_INTS_EQUAL(-300,d); //  -3.0
+  d = dattab.get_tetraloop_energy("CGAAGG");
+  CHECK_INTS_EQUAL(-250,d); //  -2.5
+  d = dattab.get_tetraloop_energy("UGGAAA");
+  CHECK_INTS_EQUAL(-150,d); // -1.5
 }
+
+/*
+ * An item from miscloop.dat
+ */
+TEST (prelog,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  float pl = dattab.get_prelog();
+  float expected = 100.0*1.07857764; /* from miscloop.dat */
+  CHECK_DOUBLES_EQUAL(expected,pl);
+}
+
+/*
+ * An item from miscloop.dat
+ */
+TEST (maxpen,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  int maxpen = dattab.get_maxpen();
+  int expected = 300; /* from miscloop.dat */
+  CHECK_INTS_EQUAL(expected,maxpen);
+}
+
+/*
+ * An item from miscloop.dat
+ */
+TEST (poppen,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  int poppen = dattab.get_poppen(1);
+  int expected = 50; /* from miscloop.dat */
+  CHECK_INTS_EQUAL(expected,poppen);
+  poppen = dattab.get_poppen(2);
+  CHECK_INTS_EQUAL(expected,poppen);
+  poppen = dattab.get_poppen(3);
+  CHECK_INTS_EQUAL(expected,poppen);
+  poppen = dattab.get_poppen(4);
+  CHECK_INTS_EQUAL(expected,poppen);
+}
+
+TEST(get_constant_multiloop_penalty,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  int mlp = dattab.get_constant_multiloop_penalty();
+  int expected = 340; /* from miscloop.dat */
+  CHECK_INTS_EQUAL(expected,mlp);
+  mlp = dattab.get_constant_efn2_multiloop_penalty();
+  expected = 1010; /* from miscloop.dat */
+  CHECK_INTS_EQUAL(expected,mlp);
+}
+
+TEST(auend,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  int tp = dattab.get_terminal_AU_penalty();
+  int expected = 50; /* from miscloop.dat */
+  CHECK_INTS_EQUAL(expected,tp);
+}
+
+TEST(gubonus,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  int gub = dattab.get_GU_bonus();
+  int expected = -220; /* from miscloop.dat */
+  CHECK_INTS_EQUAL(expected,gub);
+}
+
+
+TEST(c_hairpin,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  int cint = dattab.get_c_hairpin_intercept();
+  int expected = 160; // 1.6
+  CHECK_INTS_EQUAL(expected,cint);
+  int cslope = dattab.get_c_hairpin_slope();
+  expected = 30; // 30
+  CHECK_INTS_EQUAL(expected,cslope);
+  int c3 = dattab.get_c_hairpin_of_3();
+  expected = 140; //1.4
+  CHECK_INTS_EQUAL(expected,c3);
+}
+
+
+TEST(get_intermolecular_initiation_free_energy,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  int iife = dattab.get_intermolecular_initiation_free_energy();
+  int expected = 410; // 4.1
+  CHECK_INTS_EQUAL(expected,iife);
+}
+
+/* still miscloop.dat) */
+TEST(gail,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  int gail = dattab.get_GAIL();
+  int expected = 1; // 1= on, 0=off
+  CHECK_INTS_EQUAL(expected,gail);
+}
+
+
+/* dangle.dat) */
+TEST(dangle,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  int d = dattab.get_dangle_energy(1,1,1,1);
+  CHECK(d>9999); // should be infinity
+  d = dattab.get_dangle_energy(1,4,4,1);
+  int expected = -60; // -0.6
+  CHECK_INTS_EQUAL(expected,d);
+  d = dattab.get_dangle_energy(3,2,2,1);
+  expected = -40; // -0.4
+  CHECK_INTS_EQUAL(expected,d);
+  d = dattab.get_dangle_energy(8,3,1,1);
+  expected = -30; // -0.3
+  CHECK_INTS_EQUAL(expected,d);
+}
+
+
 
 
 int main(){   
