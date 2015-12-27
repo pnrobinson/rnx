@@ -17,7 +17,6 @@
  *
  * Prototyping. Input files from mfold dat folder
  + //open the files using the C++ method for reading
-  ml1.open(miscloop);
  
   da1.open(danglef);
   in1.open(int22);
@@ -35,6 +34,8 @@
   * - tstackh.dat th1.open(tstackh); STACKING ENERGIES : TERMINAL MISMATCHES AND BASE-PAIRS
   * - tstacki.dat  ti1.open(tstacki); STACKING ENERGIES : TERMINAL MISMATCHES AND BASE-PAIRS (?what is distinction to tstackh?)
   * - tloop.dat  tl1.open(tloop)
+  * - miscloop.data  ml1.open(miscloop); Miscellaneous free energy rules Extrapolation for large loops based on polymer theory, internal, bulge or hairpin loops > 30: dS(T)=dS(30)+param*ln(n/30) 
+ 
  
 
  *
@@ -58,7 +59,7 @@
 #define DEFINES_H
 #define maxfil 100    //maximum length of file names
 //#define infinity   //an arbitrary value given to infinity
-#define maxtloop 100 //maximum tetraloops allowed (info read from tloop)
+//#define maxtloop 100 //maximum tetraloops allowed (info read from tloop)
 #define maxstructures 1010 //maximum number of structures in ct file
 #define maxbases 10000   //maximum number of bases in a structure
 #define ctheaderlength 125 //max length of string containing info on sequence
@@ -75,7 +76,10 @@
 
 
 class Datatable {
+  /** A large number (infinity for the minimisation operations). */
   static const int s_infinity = 9999999;
+  /** maximum tetraloops allowed (info read from tloop). */
+  static const int s_maxtloop = 100;
   /**  The path to the directory containing the thermodynamic datafiles. */
   char * dirpath_;
   int poppen [5],maxpen,eparam[11],dangle[6][6][6][3];
@@ -94,12 +98,17 @@ class Datatable {
   int tstkh_[6][6][6][6];
   /** STACKING ENERGIES : TERMINAL MISMATCHES AND BASE-PAIRS (unclear what distinction is to tstkh?) */
   int tstki_[6][6][6][6];
-
-  int tloop[maxtloop+1][2],numoftloops,iloop22[6][6][6][6][6][6][6][6],
+  /** tetraloops. Storing data from tloop.dat, e.g., the first is GGGGAC -3.0 (then tloop_[1][1]=-300).
+   * the left column is a numerical value calculated from the sequence of the loop using the
+   * tonumi function, e.g., for tloop_[1][1] =7343 for sequence GGGGAC. */
+  int tloop_[s_maxtloop+1][2];
+  /** Number of tetraloops */
+  int numoftloops_;
+  int iloop22[6][6][6][6][6][6][6][6],
     iloop21[6][6][6][6][6][6][6],iloop11[6][6][6][6][6][6],
     coax[6][6][6][6],tstackcoax[6][6][6][6],coaxstack[6][6][6][6],
     tstack[6][6][6][6],tstkm[6][6][6][6],auend,gubonus,cint,cslope,c3,
-    efn2a,efn2b,efn2c,triloop[maxtloop+1][2],numoftriloops,init,gail;
+    efn2a,efn2b,efn2c,triloop[s_maxtloop+1][2],numoftriloops,init,gail;
   float prelog;
   /**
    * @param directory_path The path to the directory containing the thermodynamic datafiles.
@@ -116,6 +125,7 @@ public:
   int get_stack_energy(int w, int x, int y, int z) const;
   int get_tstackh_energy(int w, int x, int y, int z) const;
   int get_tstacki_energy(int w, int x, int y, int z) const;
+  int get_tetraloop_energy(const char *seq) const;
    
 private:
   void input_data();
@@ -124,6 +134,7 @@ private:
   void input_tstackh_dat(std::string &path);
   void input_tstacki_dat(std::string &path);
   void input_tloop_dat(std::string &path);
+  void input_miscloop_dat(std::string &path);
 };
 
 

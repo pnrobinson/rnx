@@ -55,7 +55,7 @@ bool file_exists(const char * path) {
 
 void Datatable::input_data() {
   std::string files[] = {"loop.dat","stack.dat", "tstackh.dat",
-			 "tstacki.dat", "tloop.dat",};
+			 "tstacki.dat", "tloop.dat", "miscloop.dat"};
   int n_elem = sizeof(files)/sizeof(files[0]);
   for (unsigned int i=0;i<n_elem;++i) {
     std::stringstream ss;
@@ -92,6 +92,11 @@ void Datatable::input_data() {
   ss << dirpath_ <<  "/tloop.dat";
   s = ss.str();
   input_tloop_dat(s);
+   /* 6) miscloop */
+  ss.str(std::string()); /* reset */
+  ss << dirpath_ <<  "/miscloop.dat";
+  s = ss.str();
+  input_miscloop_dat(s);
    
 }
 
@@ -296,20 +301,116 @@ void Datatable::input_tstacki_dat(std::string &path) {
   }
 }
 
+
+
+void Datatable::input_miscloop_dat(std::string &path) {
+
+}
+
+
 /**
- * Read info from tstacki 
- * add to the tstacki table the case where X (represented as 0) is looked up.
- * Function and datastructures analogous to input_stack_dat.
+ * Used to create a numerical code for sequences in input_tloop_dat
+ */
+int tonumi(const char *base)	{
+  int	a;
+  if (!strcmp(base, "A")||!strcmp(base, "B")) (a = 1);
+  else if(!strcmp(base, "C")||!strcmp(base, "Z")) (a = 2);
+  else if(!strcmp(base, "G")||!strcmp(base, "H")) (a = 3);
+  else if(!strcmp(base, "U")||!strcmp(base, "V")) (a = 4);
+  else if(!strcmp(base, "T")||!strcmp(base, "W")) (a = 4);
+  else (a=0);  //this is for others, like X
+  return a;
+}
+
+/**
+ * Input file "tloop.dat". The tetraloop bonus table. For hairpin loops with four unpaired nucleotides, this table is consulted. 
+ * If the sequence (starting with the 5' last paired nucleotide and finishing with its 3' paired nucleotide) appears in the table, 
+ * the bonus is applied to the hairpin's stability.
 */
 void Datatable::input_tloop_dat(std::string &path) {
   std::ifstream infile(path.c_str());
+  char base[110];
+  char temp[300];
   if (! infile.is_open() ) {
     std::cerr << "[ERROR] could not initialize " << path << " for I/O" << std::endl;
   }
   std::string token;
+  int count;
+ 
+   /*	Read info from tloops */
+  for (count=1; count<=3; count++)
+    infile >> token; //get past text in file
+  numoftloops_=0;
+  infile >> token;
 
-  std::cout << "input_tloop_dat: TODO\n";
 
+  for (count=1; count<=s_maxtloop&&!infile.eof(); count++){
+    //cout << lineoftext;
+    numoftloops_++;
+    strcpy(base, token.c_str());
+    strcpy(base+1, "\0");
+    tloop_[numoftloops_][0] = tonumi(base);
+    //std::cout << base << " ";
+    //std::cout << tloop_[numoftloops_][0] << "\n";
+
+    //strcpy(base, token[1]);
+    base[0] = token[1];
+    strcpy(base+1, "\0");
+    tloop_[numoftloops_][0] = tloop_[numoftloops_][0]+  5*tonumi(base);
+    //std::cout << base << " ";
+    //std::cout << tloop_[numoftloops_][0] << "\n";
+
+    //strcpy(base, token+2);
+    base[0] = token[2];
+    strcpy(base+1, "\0");
+    tloop_[numoftloops_][0] = tloop_[numoftloops_][0]+  25*tonumi(base);
+    //cout << base << "\n";
+    //cout << data->tloop[data->numoftloops][0] << "\n";
+    //strcpy(base, token+3);
+    base[0] = token[3];
+    strcpy(base+1, "\0");
+    tloop_[numoftloops_][0] = tloop_[numoftloops_][0]+  125*tonumi(base);
+    //cout << base << "\n";
+    //cout << data->tloop[data->numoftloops][0] << "\n";
+    //strcpy(base, lineoftext+4);
+    base[0] = token[4];
+    strcpy(base+1, "\0");
+    tloop_[numoftloops_][0] = tloop_[numoftloops_][0]+  625*tonumi(base);
+    //cout << base << "\n";
+    //cout << data->tloop[data->numoftloops][0] << "\n";
+    //strcpy(base, lineoftext+5);
+    base[0] = token[5];
+    strcpy(base+1, "\0");
+    tloop_[numoftloops_][0] = tloop_[numoftloops_][0]+ 3125*tonumi(base);
+    //cout << base << "\n";
+    //cout << data->tloop[data->numoftloops][0] << "\n";
+    infile >> temp;
+    tloop_[numoftloops_][1] = (int) floor (100.0*atof(temp)+0.5);
+    //std::cout<< "ntloops[0]="<< numoftloops_ << ": "<<base <<  ":"<< tloop_[numoftloops_][0] << std::endl;
+    //std::cout<< "ntloops[1]="<< numoftloops_ << ": "<<  tloop_[numoftloops_][1] << std::endl;
+    infile >> token;
+  }
+
+}
+
+int Datatable::get_tetraloop_energy(const char *seq) const {
+  int y=0;
+  size_t len = strlen(seq);
+  if (len != 6)
+    return 0;
+  y = tonumi(seq);
+  y = y +  5*tonumi(seq+1);
+  y = y +  25*tonumi(seq+2);
+  y = y +  125*tonumi(seq+3);
+  y = y +  625*tonumi(seq+4);
+  y = y +  3125*tonumi(seq+5);
+  std::cout << "get tloop y=" << y << std::endl;
+  for (int i=1;i<s_maxtloop;++i) {
+    std::cout << "tloop[" << i << "]=" << tloop_[i][0] << std::endl;
+    if (tloop_[i][0] == y)
+      return tloop_[i][1];
+  }
+  return 0;
 }
 
 
@@ -343,4 +444,6 @@ int Datatable::get_tstackh_energy(int w, int x, int y, int z) const {
 int Datatable::get_tstacki_energy(int w, int x, int y, int z) const {
   return tstki_[w][x][y][z];
 }
+
+
 

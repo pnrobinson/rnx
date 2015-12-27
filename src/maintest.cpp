@@ -267,6 +267,18 @@ TEST (getstackenergy_3,EnergyFunction2) {
   CHECK_INTS_EQUAL(70,d); // AX/UY,row 2 column 3: -2.2
 }
 
+/*
+ * Need to add more tests, do not understand format yet!
+ */
+TEST (tloop,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  int d = dattab.get_tetraloop_energy("GGUGAC");
+  CHECK_INTS_EQUAL(-300,d); // 
+  d = dattab.get_tetraloop_energy("CGAAAG");
+  CHECK_INTS_EQUAL(-300,d); // 
+}
+
 
 int main(){   
   TestResultStdErr result;
