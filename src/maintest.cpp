@@ -383,7 +383,13 @@ TEST(gail,EnergyFunction2) {
 }
 
 
-/* dangle.dat) */
+/* dangle.dat). 
+* We have l={1,2} and i,j,k={1,2,3,4}. The first four rows have l=1, and the second four rows
+* have l=2. The index "i" refers to the row within the bloc of four (e.g., l=1,i?=2 is the second overall row
+* and l=2,i=3 refers to the seventh overall row). The index j refers to the column, and the index k refers to the
+* position within the individual block (e.g., k=1: A, k=2: C, k=3: G, k=4: U).
+* dangle_[i][j][k][l] 
+*/
 TEST(dangle,EnergyFunction2) {
   const char *dir = "../dat";
   Datatable dattab(dir);
@@ -395,14 +401,61 @@ TEST(dangle,EnergyFunction2) {
   d = dattab.get_dangle_energy(3,2,2,1);
   expected = -40; // -0.4
   CHECK_INTS_EQUAL(expected,d);
-  d = dattab.get_dangle_energy(8,3,1,1);
+  d = dattab.get_dangle_energy(4,3,1, 2);
   expected = -30; // -0.3
   CHECK_INTS_EQUAL(expected,d);
 }
 
+TEST(iloop2,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  int a = 1; // "A"
+  int b = 1; // "A"
+  int c = 4; // "U"
+  int d = 4; // "U"
+  int il22 = dattab.get_iloop22(a,b,c,d, 1,1,1,1);
+  int expected = 280; // 2.9
+  CHECK_INTS_EQUAL(expected,il22);
+  il22 = dattab.get_iloop22(a,b,c,d, 1,1,1,2);
+  expected = 230; // 2.3
+  CHECK_INTS_EQUAL(expected,il22);
+  il22 = dattab.get_iloop22(a,b,c,d, 1,1,1,3);
+  expected = 170; // 1.7
+  CHECK_INTS_EQUAL(expected,il22);
+
+}
+
+/**
+ * See input_coax_dat for arrangement of indices.
+ */
+TEST(coaxial,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  
+  int ce = dattab.get_coaxial_energy(3, 2, 4,1);
+  int expected = -210; // -2.1, 
+  CHECK_INTS_EQUAL(expected,ce);
+  ce = dattab.get_coaxial_energy(4, 3, 4,1);
+  expected = -140; // -1.4, 
+  CHECK_INTS_EQUAL(expected,ce);
+}
+
+/**
+ * See tstackcoax_dat for arrangement of indices.
+ * Do not understand indexing, come back to this!
+ */
+TEST(tstack_coaxial,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  //i=1 j=1 k=2 l=1 tstackcoax=-110
+  int ce = dattab.get_tstack_coaxial_energy(1, 1, 2,1);
+  int expected = -110; // -1.1, 
+  CHECK_INTS_EQUAL(expected,ce);
+}
 
 
 
+ 
 int main(){   
   TestResultStdErr result;
   TestRegistry::runAllTests(result);

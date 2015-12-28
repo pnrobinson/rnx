@@ -59,7 +59,10 @@ bool file_exists(const char * path) {
 void Datatable::input_data() {
   std::string files[] = {"loop.dat","stack.dat", "tstackh.dat",
 			 "tstacki.dat", "tloop.dat", "miscloop.dat",
-			 "dangle.dat",};
+			 "dangle.dat","int22.dat","int21.dat",
+			 "coaxial.dat","triloop.dat", "tstackcoax.dat",
+			 "coaxstack.dat","tstack.dat","tstackm.dat",
+			 "int11.dat",};
   int n_elem = sizeof(files)/sizeof(files[0]);
   for (unsigned int i=0;i<n_elem;++i) {
     std::stringstream ss;
@@ -106,6 +109,46 @@ void Datatable::input_data() {
   ss << dirpath_ <<  "/dangle.dat";
   s = ss.str();
   input_dangle_dat(s);
+  /* 8) int22 */
+  ss.str(std::string()); /* reset */
+  ss << dirpath_ <<  "/int22.dat";
+  s = ss.str();
+  input_int22_dat(s);
+  /* 9) int21 */
+  ss.str(std::string()); /* reset */
+  ss << dirpath_ <<  "/int21.dat";
+  s = ss.str();
+  input_int21_dat(s);
+  /* 10) coaxial */
+  ss.str(std::string()); /* reset */
+  ss << dirpath_ <<  "/coaxial.dat";
+  s = ss.str();
+  input_coaxial_dat(s);
+  /* 10) tstackcoax */
+  ss.str(std::string()); /* reset */
+  ss << dirpath_ <<  "/tstackcoax.dat";
+  s = ss.str();
+  input_tstackcoax_dat(s);
+  /* 11) coaxstack */
+  ss.str(std::string()); /* reset */
+  ss << dirpath_ <<  "/coaxstack.dat";
+  s = ss.str();
+  input_coaxstack_dat(s);
+  /* 12) tstack */
+  ss.str(std::string()); /* reset */
+  ss << dirpath_ <<  "/tstack.dat";
+  s = ss.str();
+  input_tstack_dat(s);
+  /* 12) tstackm */
+  ss.str(std::string()); /* reset */
+  ss << dirpath_ <<  "/tstackm.dat";
+  s = ss.str();
+  input_tstackm_dat(s);
+  /* 11) int11 */
+  ss.str(std::string()); /* reset */
+  ss << dirpath_ <<  "/int11.dat";
+  s = ss.str();
+  input_int11_dat(s);
    
 }
 
@@ -116,7 +159,7 @@ void Datatable::input_data() {
  * then there are four columns with index/internal/bulge/hairpin with 30 lines.
  * @param path Path to loop.dat
  */
-void Datatable::input_loop_dat(std::string &path){
+void Datatable::input_loop_dat(const std::string &path){
   std::ifstream infile(path.c_str());
   if (! infile.is_open() ) {
     std::cerr << "[ERROR] could not initialize " << path << " for I/O" << std::endl;
@@ -188,7 +231,7 @@ void Datatable::input_loop_dat(std::string &path){
   * that 1-based numbering is being used.
   *
   */
-void Datatable::input_stack_dat(std::string &path) {
+void Datatable::input_stack_dat(const std::string &path) {
   std::ifstream infile(path.c_str());
   if (! infile.is_open() ) {
     std::cerr << "[ERROR] could not initialize " << path << " for I/O" << std::endl;
@@ -230,7 +273,7 @@ void Datatable::input_stack_dat(std::string &path) {
  * add to the tstackh table the case where X (represented as 0) is looked up.
  * Function and datastructures analogous to input_stack_dat.
 */
-void Datatable::input_tstackh_dat(std::string &path) {
+void Datatable::input_tstackh_dat(const std::string &path) {
   std::ifstream infile(path.c_str());
   if (! infile.is_open() ) {
     std::cerr << "[ERROR] could not initialize " << path << " for I/O" << std::endl;
@@ -273,7 +316,7 @@ void Datatable::input_tstackh_dat(std::string &path) {
  * add to the tstacki table the case where X (represented as 0) is looked up.
  * Function and datastructures analogous to input_stack_dat.
 */
-void Datatable::input_tstacki_dat(std::string &path) {
+void Datatable::input_tstacki_dat(const std::string &path) {
   std::ifstream infile(path.c_str());
   if (! infile.is_open() ) {
     std::cerr << "[ERROR] could not initialize " << path << " for I/O" << std::endl;
@@ -315,7 +358,7 @@ void Datatable::input_tstacki_dat(std::string &path) {
  * Input the file "miscloop.dat" (Miscellaneous free energy rules ).
  * the key sequence "-->" now indicates a record in that file
  */
-void Datatable::input_miscloop_dat(std::string &path) {
+void Datatable::input_miscloop_dat(const std::string &path) {
   std::ifstream infile(path.c_str());
   if (! infile.is_open() ) {
     std::cerr << "[ERROR] could not initialize " << path << " for I/O" << std::endl;
@@ -484,7 +527,7 @@ int tonumi(const char *base)	{
  * by the function tonumi, and entries such as -3.0 are stored
  * as -300 (integers).
 */
-void Datatable::input_tloop_dat(std::string &path) {
+void Datatable::input_tloop_dat(const std::string &path) {
   std::ifstream infile(path.c_str());
   char base[110];
   char temp[300];
@@ -551,7 +594,7 @@ void Datatable::input_tloop_dat(std::string &path) {
 /** read info from dangle.dat 
  *
  * \verbatim
-    X                      
+          X                      
   ------------------     
    A    C    G    U       
   ------------------      
@@ -565,8 +608,10 @@ void Datatable::input_tloop_dat(std::string &path) {
 * Presents the free energy of dangling ends (5' or 3'). These energies are used in multibranch and exterior loops.
 * In the above example, the X is dangling from the 3' end of the upper strand. This is the case for the first
 * four rows. In the last four rows, the X is dangling from the 5' end of the lower strand.
-* Assuming we have indices W,X,Y,Z., the W is the row (1-8), the X is the column (1-4)
-
+* Indexing. We have l={1,2} and i,j,k={1,2,3,4}. The first four rows have l=1, and the second four rows
+* have l=2. The index "i" refers to the row within the bloc of four (e.g., l=1,i?=2 is the second overall row
+* and l=2,i=3 refers to the seventh overall row). The index j refers to the column, and the index k refers to the
+* position within the individual block (e.g., k=1: A, k=2: C, k=3: G, k=4: U).
 */
 void Datatable::input_dangle_dat(const std::string &path) {
   std::ifstream infile(path.c_str());
@@ -608,14 +653,541 @@ void Datatable::input_dangle_dat(const std::string &path) {
 }
 
 
+/**
+ * int22.dat
+ * //Read the 2x2 internal loops
+  //key iloop22[a][b][c][d][j][l][k][m] =
+  \verbatim   a j l b
+c k m d\endverbatim
+  * For instance, for the following:
+  * \verbatim
+5' ------> 3' 
+ U \/ \_/ A 
+ G /\  |  C 
+3' <------ 5' 
+\endverbatim
+A=U, B=A C=G D=C. These are the base-paired nucleotides. The inner loop sequence j,l and k,m is analogous.
+  */
+void Datatable::input_int22_dat(const std::string &path) {
+  std::ifstream infile(path.c_str());
+  char base[110];
+  char temp[300];
+  if (! infile.is_open() ) {
+    std::cerr << "[ERROR] could not initialize " << path << " for I/O" << std::endl;
+  }
+  std::string token;
+  int count, i,j,k,l,m,a,b,c,d;
+  
+  for (count=1; count<=340; count++)
+    infile >> token; //get past text in file
+
+  for (i=1; i<=36; i++) {//read each of 21 tables
+    for (j=1; j<=39; j++) {
+      infile >> token; //get past text in file
+    }
+    strcpy(base, token.c_str());
+    strcpy(base+1, "\0");
+    a = tonumi(base);
+    for (j=1; j<=3; j++)
+      infile >> token;
+    strcpy(base, token.c_str());
+    strcpy(base+1, "\0");
+    b = tonumi(base);
+    infile>>token;
+    strcpy(base, token.c_str());
+    strcpy(base+1, "\0");
+    c = tonumi(base);
+    for (j=1; j<=3; j++)
+      infile>> token;
+    strcpy(base, token.c_str());
+    strcpy(base+1, "\0");
+    d = tonumi(base);
+    for (j=1; j<=3; j++)
+      infile>> token; //get past text in file
+    for (j=1; j<=4; j++) {
+      for (k=1; k<=4; k++) {
+	for (l=1; l<=4; l++) {
+	  for (m=1; m<=4; m++) {
+	    infile >> temp;
+	    iloop22_[a][b][c][d][j][l][k][m] = static_cast<int> (floor(100.0*atof(temp)+0.5));
+	  }
+	}
+      }
+    }
+  }
+}
+
+/**
+ * Read from int21.dat,  the 2x1 internal loop data
+ */
+void Datatable::input_int21_dat(const std::string &path){
+  std::ifstream infile(path.c_str());
+  char base[110];
+  char temp[300];
+  if (! infile.is_open() ) {
+    std::cerr << "[ERROR] could not initialize " << path << " for I/O" << std::endl;
+  }
+  std::string token;
+  int count, i,j,a,b,c,d,e,f,g;
+
+  for (i=1; i<=58; i++)
+    infile >> token; //get past text at top of file
+  for (i=1; i<=6; i++) { //read each row of tables
+    for (e=1; e<=4; e++) {
+      for (j=1; j<=66; j++)
+	infile >> token; //get past text in file
+      infile >> token;
+      strcpy(base, token.c_str());
+      strcpy(base+1, "\0");
+      a = tonumi(base);
+      for (j=1; j<=11; j++)
+	infile >> token; //get past text in file
+      infile >> token;
+      strcpy(base, token.c_str());
+      strcpy(base+1, "\0");
+      b = tonumi(base);
+      for (j=1; j<=35; j++)
+	infile >> token; //get past text in file
+      for (c=1; c<=4; c++) {
+	for (j=1; j<=6; j++) {
+	  switch (j) {
+	  case 1:
+	    f = 1;
+	    g = 4;
+	    break;
+	  case 2:
+	    f = 2;
+	    g = 3;
+	    break;
+	  case 3:
+	    f = 3;
+	    g = 2;
+	    break;
+	  case 4:
+	    f = 4;
+	    g = 1;
+	    break;
+	  case 5:
+	    f = 3;
+	    g = 4;
+	    break;
+	  case 6:
+	    f = 4;
+	    g = 3;
+	    break;
+	  }
+	  for (d=1; d<=4; d++) {
+	    infile >> temp;
+	    iloop21_[a][b][c][d][e][f][g]= static_cast<int> ( floor(100.0*atof(temp)+0.5));
+	  }
+	}
+      }
+    }
+
+  }
+}
 
 
+/**
+ *  Read info from coaxial.dat. 
+ * add to the stack table the case where X (represented as 0) is looked up:
+ * data arrangement of coax: data->coax[a][b][c][d]
+  \verbatim 5'bc3'
+3'ad
+\endverbatim
+* The data is arranged like this
+\verbatim        
+ Y                       Y                       Y                       Y 
+  ------------------      ------------------      ------------------      ------------------   
+   A    C    G    U        A    C    G    U        A    C    G    U        A    C    G    U  
+  ------------------      ------------------      ------------------      ------------------   
+      5' --> 3'               5' --> 3'               5' --> 3'               5' --> 3'     
+         UX                      UX                      UX                      UX 
+         AY                      CY                      GY                      UY 
+      3' <-- 5'               3' <-- 5'               3' <-- 5'               3' <-- 5'   
+   .     .     .   -1.3    .     .     .     .     .     .     .   -1.0    .     .     .     .   
+   .     .   -2.4    .     .     .     .     .     .     .   -1.5    .     .     .     .     .    
+   .   -2.1    .   -1.0    .     .     .     .     .   -1.4    .    0.3    .     .     .     .   
+ -0.9    .   -1.3    .     .     .     .     .   -0.6    .   -0.5    .     .     .     .     .    
+\endverbatim
+* It is placed in coax_[j][i][k][l].
+* There are four blocks (indexed by j). The overall column is indexed by i. The individual 4x4 block is
+* indexed by k and l.
+*/
+void Datatable::input_coaxial_dat(const std::string &path){
+  std::ifstream infile(path.c_str());
+  char base[110];
+  char temp[300];
+  if (! infile.is_open() ) {
+    std::cerr << "[ERROR] could not initialize " << path << " for I/O" << std::endl;
+  }
+  std::string token;
+  int count, i,j,k,l; 
 
+  for (count=1; count<=42; count++)
+    infile >> token; //get past text in file
+  for (i=0; i<=5; i++) {
+    if ((i!=0)&&(i!=5))
+      for (count=1; count<=60; count++)
+	infile >> token;
+    for (k=0; k<=5; k++) {
+      for (j=0; j<=5; j++) {
+	for (l=0; l<=5; l++) {
+	  if ((i==0)||(j==0)||(k==0)||(l==0)) {
+	    coax_[j][i][k][l]=0;
+	  } else if ((i==5)||(j==5)||(k==5)||(l==5)) {
+	    coax_[j][i][k][l] = s_infinity;
+	  } else {
+	    infile >> token;
+	    if (token != "."){
+	      coax_[j][i][k][l] = static_cast<int> ( floor(100.0*(atof(token.c_str()))+.5));
+	      //std::cout << "i=" << i << " j=" << j << " k=" << k << " l="<< l << " coax=" << coax_[j][i][k][l] << std::endl;
+	    } else {
+	      coax_[j][i][k][l] = s_infinity;
+	    }
+	  }
+	}
+      }
+    }
+  }
+}
 
+/**
+ * triloop.dat
+ * A lookup table for hairpin loops of three. It is applied analogously to the tetraloop table in Tloop.dat.
+ * File structure
+ *\verbatim
+ Seq    Energy
+ -------------
+CAACG	6.8
+GUUAC	6.9
+\endverbatim
+*/
+void Datatable::input_triloop_dat(const std::string &path) {
+  std::ifstream infile(path.c_str());
+  char base[110];
+  char temp[300];
+  if (! infile.is_open() ) {
+    std::cerr << "[ERROR] could not initialize " << path << " for I/O" << std::endl;
+  }
+  std::string token;
+  int count, i,j,k,l; 
 
+  for (count=1; count<=3; count++)
+    infile >> token; //get past text in file
+  numoftriloops_=0;
+  infile >> token;
 
+  for (count=1; count<=s_maxtloop && !infile.eof(); count++){
+    std::cout << token<<"\n";
 
+    numoftriloops_++;
+    //strcpy(base, token.c_str());
+    base[0]=token[0];
+    strcpy(base+1, "\0");
+    triloop_[numoftriloops_][0] = tonumi(base);
+    //strcpy(base, lineoftext+1);
+    base[0]=token[1];
+    strcpy(base+1, "\0");
+    triloop_[numoftriloops_][0] = triloop_[numoftriloops_][0]+  5*tonumi(base);
+    //strcpy(base, lineoftext+2);
+    base[0]=token[2];
+    strcpy(base+1, "\0");
+    triloop_[numoftriloops_][0] = triloop_[numoftriloops_][0]+ 25*tonumi(base);
+    //strcpy(base, lineoftext+3);
+    base[0]=token[3];
+    strcpy(base+1, "\0");
+    triloop_[numoftriloops_][0] = triloop_[numoftriloops_][0]+ 125*tonumi(base);
+    //strcpy(base, lineoftext+4);
+    base[0]=token[4];
+    strcpy(base+1, "\0");
+    triloop_[numoftriloops_][0] = triloop_[numoftriloops_][0]+ 625*tonumi(base);
+    infile >> temp;
+    triloop_[numoftriloops_][1] = static_cast<int> (floor (100.0*atof(temp)+0.5));
 
+    //cout << data->triloop[data->numoftriloops][1]<< "  "<<data->triloop[data->numoftriloops][0]<<"\n";
+
+    infile >> token;
+  }
+}
+
+/**
+ * Read info from tstackcoax
+ * add to the tstackh table the case where X (represented as 0) is looked up:
+ */
+void Datatable::input_tstackcoax_dat(const std::string &path) {
+  std::ifstream infile(path.c_str());
+  char base[110];
+  char temp[300];
+  if (! infile.is_open() ) {
+    std::cerr << "[ERROR] could not initialize " << path << " for I/O" << std::endl;
+  }
+  std::string token;
+  int count, i,j,k,l; 
+  
+  for (count=1; count<=46; count++)
+    infile >> token; //get past text in file
+  for (i=0; i<=5; i++) {
+    if (!(i==0||i==5))
+      for (count=1; count<=60; count++)
+	infile >> token;
+    for (k=0; k<=5; k++) {
+      for (j=0; j<=5; j++) {
+	for (l=0; l<=5; l++) {
+	  if ((i==0)||(j==0)||(k==0)||(l==0)||(i==5)||(j==5)||(k==5)||(l==5)) {
+	    tstackcoax_[i][j][k][l]=0;
+	  } else {
+	    infile >> token;
+	    if (token !=  "."){
+	      tstackcoax_[i][j][k][l] = static_cast<int> (floor(100.0*(atof(token.c_str()))+.5));
+	      //std::cout << "i="<<i << " j=" << j << " k="<<k<< " l="<<l << " tstackcoax=" << tstackcoax_[i][j][k][l] << std::endl;
+	    }  else {
+	      tstackcoax_[i][j][k][l] = s_infinity;
+	    }
+	  }
+	}
+      }
+    }
+  }
+}
+
+/**
+ * The first of the tables for coaxial stacking with an intervening mismatch. This is the stack with the open backbone.
+ * add to the tstackh table the case where X (represented as 0) is looked up:
+ *\verbatim
+Data Arangement: 
+ 
+                 Y           
+         ------------------  
+     (X)  A    C    G    U   
+         ------------------  
+             5' ==> 3'       
+                AX           
+                AY 
+             3' <== 5'       
+     (A)   .     .     .     .   
+     (C)   .     .     .     .   
+     (G)   .     .     .     .   
+     (U) -0.7  -0.1  -0.7  -0.1  
+\endverbatim
+\todo Do not understand the indexing scheme.
+ */
+void Datatable::input_coaxstack_dat(const std::string &path) {
+  std::ifstream infile(path.c_str());
+  char base[110];
+  char temp[300];
+  if (! infile.is_open() ) {
+    std::cerr << "[ERROR] could not initialize " << path << " for I/O" << std::endl;
+  }
+  std::string token;
+  int count, i,j,k,l; 
+
+  for (count=1; count<=46; count++)
+    infile >> token; //get past text in file
+  for (i=0; i<=4; i++) {
+    if (!(i==0||i==5))
+      for (count=1; count<=60; count++)
+	infile >> token;
+    for (k=0; k<=4; k++) {
+      for (j=0; j<=4; j++) {
+	for (l=0; l<=4; l++) {
+	  if ((i==0)||(j==0)||(k==0)||(l==0)||(i==5)||(j==5)||(k==5)||(l==5)) {
+	    coaxstack_[i][j][k][l]=0;
+	  } else {
+	    infile >> token;
+	    if (token !=  "."){
+	      coaxstack_[i][j][k][l] = static_cast<int> ( floor(100.0*(atof(token.c_str()))+.5));
+	      //std::cout << "i="<<i << " j=" << j << " k="<<k<< " l="<<l << " coaxstack=" << coaxstack_[i][j][k][l] << std::endl;
+	    } else {
+	      coaxstack_[i][j][k][l] = s_infinity;
+	    }
+	  }
+	}
+      }
+    }
+  }
+}
+
+/**
+ * this function calculates whether a terminal pair i, j requires the end penalty
+ */
+int Datatable::penalty2(int i, int j) const {
+  if (i==4||j==4)
+    return auend_;
+  else return 0; //no end penalty
+}
+
+/**
+ * For terminal mismatch stacking in exterior loops, i.e. loops that contain the ends of the sequence.
+ *  Read info from tstack 
+ * this is the terminal mismatch data used in intermolecular folding
+ * add to the tstack table the case where X (represented as 0) is looked up.
+ * also add the case where 5 (the intermolecular linker) is looked up,
+ * this is actually a dangling end, not a terminal mismatch.
+ */
+void Datatable::input_tstack_dat(const std::string &path) {
+  std::ifstream infile(path.c_str());
+  char base[110];
+  char temp[300];
+  if (! infile.is_open() ) {
+    std::cerr << "[ERROR] could not initialize " << path << " for I/O" << std::endl;
+  }
+  std::string token;
+  int count, i,j,k,l;
+  
+  for (count=1; count<=46; count++)
+    infile>> token; //get past text in file
+  for (i=0; i<=5; i++) {
+    if ((i!=0)&&(i!=5))
+      for (count=1; count<=60; count++)
+	infile >> token;
+    for (k=0; k<=5; k++) {
+      for (j=0; j<=5; j++) {
+	for (l=0; l<=5; l++) {
+	  if ((i==0)||(j==0)||(k==0)||(l==0)) {
+	    tstack_[i][j][k][l]=0;
+	  } else if ((i==5)||(j==5)) {
+	    tstack_[i][j][k][l] = s_infinity;
+	  } else if ((k==5)||(l==5)) {
+	    //include "5", linker for intermolecular for case of flush ends
+	    if ((k==5)&&(l==5)) {//flush end
+	      tstack_[i][j][k][l]=0;
+	    } else if (k==5) {//5' dangling end
+	      //look up number for dangling end
+	      tstack_[i][j][k][l] = dangle_[i][j][l][2]+penalty2(i, j);
+	    } else if (l==5) {//3' dangling end
+	      tstack_[i][j][k][l] = dangle_[i][j][k][1]+penalty2(i, j);
+	    }
+	  } else {
+	    infile>> token;
+	    if (token != "."){
+	      tstack_[i][j][k][l] =(int) floor (100.0*(atof(token.c_str()))+.5);
+	    } else {
+	      tstack_[i][j][k][l] = s_infinity;
+	    }
+	  }
+	}
+      }
+    }
+  }
+}
+
+/* Read info from tstackm. Used for terminal stacking in a multibranch loop.
+ * add to the tstackm table the case where X (represented as 0) is looked up:
+ */
+void Datatable::input_tstackm_dat(const std::string &path) {
+  std::ifstream infile(path.c_str());
+  char base[110];
+  char temp[300];
+  if (! infile.is_open() ) {
+    std::cerr << "[ERROR] could not initialize " << path << " for I/O" << std::endl;
+  }
+  std::string token;
+  int count, i,j,k,l;
+
+  for (count=1; count<=46; count++)
+    infile >> token; //get past text in file
+  for (i=0; i<=4; i++) {
+    if (i!=0)
+      for (count=1; count<=60; count++)
+	infile >> token;
+    for (k=0; k<=4; k++) {
+      for (j=0; j<=4; j++) {
+	for (l=0; l<=4; l++) {
+	  if ((i==0)||(j==0)||(k==0)||(l==0)) {
+	    tstkm_[i][j][k][l]=0;
+	  } else {
+	    infile>> token;
+	    if (token !=  "."){
+	      tstkm_[i][j][k][l] = static_cast<int> (floor(100.0*(atof(token.c_str()))+.5));
+	    } else {
+	      tstkm_[i][j][k][l] = s_infinity;
+	    }
+	  }
+	}
+      }
+    }
+  }
+}
+
+/**
+ * Read the 1x1 internal loop data
+ * encode the data like:  abc
+ *                       def where b-e is a mismatch
+ */
+void Datatable::input_int11_dat(const std::string &path){
+  std::ifstream infile(path.c_str());
+  char base[110];
+  char temp[300];
+  if (! infile.is_open() ) {
+    std::cerr << "[ERROR] could not initialize " << path << " for I/O" << std::endl;
+  }
+  std::string token;
+  int count, a,b,c,d,e,f,i,j;
+
+  for (i=1; i<=58; i++)
+    infile >> token; //get past text at top of file
+  for (i=1; i<=6; i++) { //read each row of table
+    if (i==1) {
+      a = 1;
+      d = 4;
+    }
+    else if (i==2) {
+      a = 2;
+      d = 3;
+    }
+    else if (i==3) {
+      a = 3;
+      d = 2;
+    }
+    else if (i==4) {
+      a = 4;
+      d = 1;
+    }
+    else if (i==5) {
+      a = 3;
+      d = 4;
+    }
+    else {
+      a = 4;
+      d = 3;
+    }
+    for (j=1; j<=114; j++)
+      infile >> token; //get past text
+    for (b=1; b<=4; b++) {
+      for (j=1; j<=6; j++) {
+      	if (j==1) {
+	  c = 1;
+	  f = 4;
+	}
+	else if (j==2) {
+	  c = 2;
+	  f = 3;
+	}
+	else if (j==3) {
+	  c = 3;
+	  f = 2;
+	}
+	else if (j==4) {
+	  c = 4;
+	  f = 1;
+	}
+	else if (j==5) {
+	  c = 3;
+	  f = 4;
+	}
+	else {
+	  c = 4;
+	  f = 3;
+	}
+	for (e=1; e<=4; e++) {
+	  infile >> temp;
+	  iloop11_[a][b][c][d][e][f]= static_cast<int>(floor(100.0*atof(temp)+0.5));
+	}
+      }
+    }
+  }
+}
 
 /**
  * This function is intended for testing only and can be removed at a later time
@@ -735,6 +1307,26 @@ int Datatable::get_GAIL() const {
   return gail_;
 }
 
-int Datatable::get_dangle_energy(int w, int x, int y, int z) const {
-  return dangle_[w][x][y][z];
+/**
+ * Return the dangle free energy (dangle.dat).
+ * \param i Refers to the row within one of the two blocks of four rows
+ * \param j Refers to the column of the blocks
+ * \param k position within the individual block (e.g., k=1: A, k=2: C, k=3: G, k=4: U).
+ * \param l Refers to the overall four-block (l=1 first four, l=2 second four).
+ */
+ int Datatable::get_dangle_energy(int i, int j, int k, int l) const {
+  return dangle_[i][j][k][l];
 }
+
+
+int Datatable::get_iloop22(int a, int b, int c, int d, int j, int k, int l, int m) const {
+  return iloop22_[a][b][c][d][j][k][l][m];
+}
+
+int Datatable::get_coaxial_energy(int i, int j, int k, int l) const {
+  return coax_[i][j][k][l];
+}
+
+int Datatable::get_tstack_coaxial_energy(int i, int j, int k, int l) const {
+    return tstackcoax_[i][j][k][l];
+  }

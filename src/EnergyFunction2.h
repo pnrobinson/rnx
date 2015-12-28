@@ -16,28 +16,25 @@
  * Based on e2f2 from the mfold package.
  *
  * Prototyping. Input files from mfold dat folder
- + //open the files using the C++ method for reading
- 
-  da1.open(danglef);
-  in1.open(int22);
-  in2.open(int21);
-  tri.open(triloop);
-  co1.open(coax);
-  co2.open(tstackcoax);
-  co3.open(coaxstack);
-  st2.open(tstack);
-  tsm.open(tstackm);
-  i11.open(int11);
-  * List of input files
-  * - loop.dat (lo1.open(loop2)). DESTABILIZING ENERGIES BY SIZE OF LOOP (corresponds to inter_, bulge_, and hairpin_)
-  * - stack.dat (st1.open(stackf)). stack energies
-  * - tstackh.dat th1.open(tstackh); STACKING ENERGIES : TERMINAL MISMATCHES AND BASE-PAIRS
-  * - tstacki.dat  ti1.open(tstacki); STACKING ENERGIES : TERMINAL MISMATCHES AND BASE-PAIRS (?what is distinction to tstackh?)
-  * - tloop.dat  tl1.open(tloop)
-  * - miscloop.data  ml1.open(miscloop); Miscellaneous free energy rules Extrapolation for large loops based on polymer theory, internal, bulge or hairpin loops > 30: dS(T)=dS(30)+param*ln(n/30) 
-  * - dangle.dat  da1.open(danglef);
- 
-
+ * List of input files
+ * - loop.dat (lo1.open(loop2)). DESTABILIZING ENERGIES BY SIZE OF LOOP (corresponds to inter_, bulge_, and hairpin_)
+ * - stack.dat (st1.open(stackf)). stack energies
+ * - tstackh.dat th1.open(tstackh); STACKING ENERGIES : TERMINAL MISMATCHES AND BASE-PAIRS
+ * - tstacki.dat  ti1.open(tstacki); STACKING ENERGIES : TERMINAL MISMATCHES AND BASE-PAIRS (?what is distinction to tstackh?)
+ * - tloop.dat  tl1.open(tloop)
+ * - miscloop.data  ml1.open(miscloop); Miscellaneous free energy rules Extrapolation for large loops based on polymer theory, internal, bulge or hairpin loops > 30: dS(T)=dS(30)+param*ln(n/30) 
+ * - dangle.dat  da1.open(danglef);
+ * - int22.dat  in1.open(int22); Data tables for symetric interior loops of size 4 
+ * - int21.dat
+ * - coaxial.dat co1.open(coax);
+ * - triloop.dat  tri.open(triloop);
+ * - tstackcoax
+ * - coaxstack.dat
+ * - tstack.dat st2.open(tstack);
+ * - tstackm.dat   tsm.open(tstackm);
+ * - i11.open(int11);
+ *
+ * The program first reads in all of these files in the indicated order.
  *
  * \note Still prototyping.
  *
@@ -45,7 +42,7 @@
  *
  * \version  0.0.2
  *
- * \date 25 December 2015
+ * \date 28 December 2015
  *
  * Contact: peter.robinson@charite.de
  *
@@ -111,10 +108,24 @@ class Datatable {
   int tloop_[s_maxtloop+1][2];
   /** Number of tetraloops */
   int numoftloops_;
-  int iloop22[6][6][6][6][6][6][6][6],
-    iloop21[6][6][6][6][6][6][6],iloop11[6][6][6][6][6][6],
-    coax[6][6][6][6],tstackcoax[6][6][6][6],coaxstack[6][6][6][6],
-    tstack[6][6][6][6],tstkm[6][6][6][6];
+  /** Data tables for symetric interior loops of size 4 (int22.dat). Key iloop22[a][b][c][d][j][l][k][m] =
+   * a j l b
+   * c k m d*/
+  int iloop22_[6][6][6][6][6][6][6][6];
+  /** Data tables for asymmetric interior loops of size 3  */
+  int iloop21_[6][6][6][6][6][6][6];
+  /** The lookup table for single mismatches. */
+  int iloop11_[6][6][6][6][6][6];
+  /** The first of the tables for coaxial stacking with an intervening mismatch. This is the stack with the open backbone.*/
+  int coax_[6][6][6][6];
+  /** The second of the tables for coaxial stacking with an intervening mismatch. This is the stack with the continuous backbone.*/
+  int tstackcoax_[6][6][6][6];
+  /** The first of the tables for coaxial stacking with an intervening mismatch. This is the stack with the open backbone.*/
+  int coaxstack_[6][6][6][6];
+  /** For terminal mismatch stacking in exterior loops, i.e. loops that contain the ends of the sequence. (tstack.dat). */
+  int tstack_[6][6][6][6];
+  /** Used for terminal stacking in a multibranch loop. */
+  int tstkm_[6][6][6][6];
   /** terminal AU penalty  (miscloop.dat) */
   int auend_;
   /** bonus for GGG hairpin  */
@@ -131,8 +142,11 @@ class Datatable {
   int efn2b_;
   /** efn2 efn2 multibranched loops helix penalty */ 
   int efn2c_;
-  int triloop[s_maxtloop+1][2];
-  int numoftriloops;
+  /** from triloop.dat (empty in mfold but two entries in Matthews 2004) 
+   * A lookup table for hairpin loops of three. It is applied analogously to the tetraloop table in Tloop.dat.*/
+  int triloop_[s_maxtloop+1][2];
+  /** Number of triloops entered from triloop.dat */
+  int numoftriloops_;
   /** Intermolecular initiation free energy (miscloop.dat) */
   int init_;
   /** GAIL Rule (Grossly Asymmetric Interior Loop Rule) (on/off <-> 1/0)  */
@@ -168,17 +182,35 @@ public:
   int get_c_hairpin_of_3() const;
   int get_intermolecular_initiation_free_energy() const;
   int get_GAIL() const;
-  int get_dangle_energy(int w, int x, int y, int z) const;
-   
+  int get_dangle_energy(int i, int j, int k, int l) const;
+  int get_iloop22(int a, int b, int c, int d, int j, int k, int l, int m) const;
+  int get_coaxial_energy(int i, int j, int k, int l) const;
+  int get_tstack_coaxial_energy(int i, int j, int k, int l) const;
+  
 private:
   void input_data();
-  void input_loop_dat(std::string &path);
-  void input_stack_dat(std::string &path);
-  void input_tstackh_dat(std::string &path);
-  void input_tstacki_dat(std::string &path);
-  void input_tloop_dat(std::string &path);
-  void input_miscloop_dat(std::string &path);
+  void input_loop_dat(const std::string &path);
+  void input_stack_dat(const std::string &path);
+  void input_tstackh_dat(const std::string &path);
+  void input_tstacki_dat(const std::string &path);
+  void input_tloop_dat(const std::string &path);
+  void input_miscloop_dat(const std::string &path);
   void input_dangle_dat(const std::string &path);
+  void input_int22_dat(const std::string &path);
+  void input_int21_dat(const std::string &path);
+  void input_coaxial_dat(const std::string &path);
+  void input_triloop_dat(const std::string &path);
+  void input_tstackcoax_dat(const std::string &path);
+  void input_coaxstack_dat(const std::string &path);
+  void input_tstack_dat(const std::string &path);
+  void input_tstackm_dat(const std::string &path);
+  void input_int11_dat(const std::string &path);
+  
+//this function calculates whether a terminal pair i, j requires the end penalty
+  int penalty2(int i, int j) const; 
+
+
+
 };
 
 
