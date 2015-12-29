@@ -4,17 +4,7 @@
 
 
 #include <string>
-/**
- * \class RNAStructure
- *
- * \ingroup Folding
- * 
- * This class represents a single RNA Structure
- * that was inferred by an algorithm or input from
- * a file such as a CT file.
- * @author Peter Robinson
- * @version 0.0.1 Dec 29, 2015
- */
+
 
 #if !defined(DEFINES_H)
 #define DEFINES_H
@@ -33,7 +23,16 @@
 #endif
 
 /**
+ * \class RNAStructure
+ *
+ * \ingroup Folding
+ * 
+ * This class represents a single RNA Structure
+ * that was inferred by an algorithm or input from
+ * a file such as a CT file.
  * This class et up to hold many possible structures of the same sequence
+ * @author Peter Robinson
+ * @version 0.0.1 Dec 29, 2015
  */
 class RNAStructure {
   /** (Maximum) length of the header line of a CT file. */
@@ -47,18 +46,22 @@ class RNAStructure {
   /** number of alternative structures of the sequence
       that is held by structure */
   int numofstructures_;
-  int pair[maxforce][2],npair;
+  int pair[maxforce][2];
+  int npair_;
   int *numseq_;
   int *hnumber_;
+  /** basepr_[i][j] = base to which the jth base is paired in the ith structure */
   int **basepr_;
-  int ndbl, dbl[maxforce];
+  int ndbl_;
+  int dbl_[maxforce];
   int energy_[s_maxstructures+1];
   int inter_[3];
   int nnopair_;
   int nopair_[maxforce];
-  int ngu,gu[maxgu];
+  int ngu_;
+  int gu_[maxgu];
   /** Labels for the structures in this CT file. */
-  char ctlabel_[s_maxstructures+1][s_ctheaderlength];
+  std::string ctlabel_[s_maxstructures+1]; //[s_ctheaderlength];
   /** Nucleotides */
   char *nucs_;
   bool intermolecular_;
@@ -98,7 +101,9 @@ class RNAStructure {
   RNAStructure(const std::string &path);
   ~RNAStructure();
   int get_number_of_bases() const;
-
+  int get_number_of_structures() const;
+  std::string get_ith_label(int i) const;
+  std::string get_dot_parens_structure(int i) const;
 
  private:
   void allocate(int size = s_maxbases);

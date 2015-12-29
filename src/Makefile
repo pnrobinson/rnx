@@ -5,7 +5,7 @@ LIBFLAGS = #lib/cppunitlite.a
 %.o : %.cpp
 	$(CC) $(CCFLAGS) -c $<
 
-objects = maintest.o unittest.o Sequence.o Nussinov.o EnergyFunction2.o
+objects = maintest.o unittest.o Sequence.o Nussinov.o EnergyFunction2.o RNAStructure.o
 
 all: maintest
 

@@ -15,6 +15,18 @@
 
 
 RNAStructure::RNAStructure(const std::string &path) {
+  int i;
+  allocate();
+  for (i=1;i<=s_maxstructures;i++) {
+    energy_[i]=0;
+    allocated_ = false;
+  }
+  nnopair_=0;
+  npair_=0;
+  ndbl_=0;
+  intermolecular_ = false;
+  ngu_ = 0;
+  templated_ = false;
   createFromCTFile(path.c_str());
 }
 
@@ -53,15 +65,18 @@ RNAStructure::RNAStructure(const std::string &path) {
 * Note that the example file  RA7680.ct (used for unit testing and saved in the test_data directory)
 * represents a tRNA (Sprinzl M, Vassilenko KS. Compilation of tRNA sequences and sequences of 
 * tRNA genes. Nucleic Acids Res. 2005;33:D139–140).
+* Note that this class was adapted from a struct that was intended to deal with CT files. It is
+* thus not primarily adapted to dot-parens or other structure representations. We will make a
+* function to output a dot-paren representation from the CT representation.
  * @param path Path to the ct file.
  * @param rnalist Vector that will hold all of the structures in the current CT file we are parsing.
  */
 int RNAStructure::createFromCTFile(const char * path) {
   int count, i, j;
   int linelength = 20;
-  //RNAStructure rnastruct;
-  //int ctheaderlength = 125; //max length of string containing info on sequence
-  char base[2], header[s_ctheaderlength], line[linelength], temp[50];
+  char base[2]; // base[0] will be one or ACGU, and base[1]='\0'
+  char line[linelength], temp[50];
+  std::string header;
   std::ifstream in;
   in.open(path);
   in >> count; /* this is the number of residues in the sequence. */
@@ -73,45 +88,40 @@ int RNAStructure::createFromCTFile(const char * path) {
     exit(1);
   }
   // allocate memory
-  allocate(count);
+  //allocate(count);
   // Rest the file
   in.close();
   in.open(path);
   for (numofstructures_ = 1; numofstructures_<=s_maxstructures;
        numofstructures_++) {
-    strcpy (header, "");
+    header.clear();
     if (numofstructures_==s_maxstructures) {
       std::cerr << "[ERROR] Number of structures in CT file \""<< path << "\" exceeds maximum allowed.\n";
       exit(1);
     }
     in >> numofbases_;
     strcpy(line, "");
-    in.getline(header, s_ctheaderlength);
-
-      //	 do {
-      //	 	strcat(header, line);
-      //		if (in.eof()) {
-      //			ct->numofstructures--;
-      //			return;
-      //		}
-      //		in >> line;
-      //		strcat(header, " ");
-      //	 }
-      //	 while(strcmp(line, "1"));
-      //	 in.putback(*line); */
-
-    if(in.eof()) {
+    getline (in,header); // read one line into the header
+    /* The following avoids errors from empty last line in the file following a complete structure. */
+    while (header.empty()) {  // we could be at end of file. Keep reading until we hit end or a valid line
+      if (in.eof()) {
+	numofstructures_--;
+	return 1;
+      } else {
+	getline (in,header);
+      }
+    }
+    // Remove whitespaces from header if necessary
+    size_t first = header.find_first_not_of(' ');
+    size_t last = header.find_last_not_of(' ');
+    header = header.substr(first, (last-first+1));
+    if (in.eof()) {
       numofstructures_--;
       return 1;
     }
-    
-    strcpy((ctlabel_[numofstructures_]), header);
+    ctlabel_[numofstructures_] = header;
+    // The following code gets the structural information.
     for (count=1; count<= numofbases_; count++)	{
-      
-      //if(in.eof()) {
-      //	ct->numofstructures--;
-      //	return;
-      //}
       in >> temp; //ignore base number in ctfile
       in >> base; //read the base
       strcpy(base+1, "\0");
@@ -122,7 +132,7 @@ int RNAStructure::createFromCTFile(const char * path) {
 	inter_[j] = count;
 	j++;
       }
-      in >>	temp; //ignore numbering
+      in >> temp; //ignore numbering
       in >> temp; //ignore numbering
       in >> basepr_[numofstructures_][count]; //read base pairing info
       in >> hnumber_[count]; //read historical numbering
@@ -224,4 +234,42 @@ RNAStructure::~RNAStructure() {
 
 int RNAStructure::get_number_of_bases() const {
   return numofbases_;
+}
+
+int RNAStructure::get_number_of_structures() const {
+  return numofstructures_;
+}
+
+std::string RNAStructure::get_ith_label(int i) const {
+  if (i>numofstructures_) {
+    std::cerr << "[ERROR] Index of sought after label too high: " << i << std::endl;
+    return NULL;
+  }
+  return ctlabel_[i];
+}
+
+
+
+/**
+ * Note that we use the information in the basepr_ array to create
+ * the dot-paren representation. basepr_[i][j] = base to which the jth base is paired in the ith structure.
+ * Note that basepr_ uses one-based numbering. If basepr_[i][j]>j, then we are opening a base pair to
+ * a base that comes later in the sequence, thus, we write '('. If basepr_[i][j]==0, there is no base
+ * pair, and we write nothing. If basepr_[i][j]<j, then we are closing a base pair that was opened before,
+ * and we write ')'.
+ * @param i The index of the structure to be output (note: structures begin at i=1, not i=0).
+ */
+std::string RNAStructure::get_dot_parens_structure(int i) const {
+  if (i>numofstructures_) {
+    std::cerr << "[ERROR] Index of sought after label too high: " << i << std::endl;
+    return NULL;
+  }
+  std::string s(numofbases_, '.');
+  for (int j=1;j<= numofbases_; ++j) {
+    if (basepr_[i][j] != 0 &&  basepr_[i][j] > j)
+      s[j-1] = '(';
+    else if  (basepr_[i][j] != 0 &&  basepr_[i][j] < j)
+      s[j-1]=')';
+  }
+  return s;
 }

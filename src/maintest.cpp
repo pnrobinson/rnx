@@ -4,16 +4,50 @@
 #include "Sequence.h"
 #include "Nussinov.h"
 #include "EnergyFunction2.h"
+#include "RNAStructure.h"
 
 #include <string>
 #include <vector>
+#include <execinfo.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 // Files with unit test
 #include "unittests/readfastatest.cpp"
 
 
+/** Handler to print a stack trace if there is a SEGFAULT */
+void handler(int sig) {
+  void *array[30];
+  size_t size;
+
+  // get void*'s for all entries on the stack
+  size = backtrace(array, 30);
+
+  // print out all the frames to stderr
+  fprintf(stderr, "Error: signal %d:\n", sig);
+  backtrace_symbols_fd(array, size, STDERR_FILENO);
+  fprintf(stderr, "Consider  addr2line 0x435607 -e maintest\n" );
+  exit(1);
+}
 
 
+
+class RNAStructureFixtureSetup : public TestSetup {
+  public:
+  void setup() {
+    std::string ct_file = "../testdata/RA7680.ct";
+    rnastruct=new RNAStructure(ct_file);
+   
+  }
+
+  void teardown() {
+    /* nothing to do */
+  }
+  protected:
+    RNAStructure *rnastruct;
+};
 
 
 
@@ -455,10 +489,58 @@ TEST(tstack_coaxial,EnergyFunction2) {
 
 
 
+
+
+/** check we get the correct length of the RA7680 sequence */
+TESTWITHSETUP(RNAStructureFixture,basics)
+{
+  int nbase = rnastruct->get_number_of_bases();
+  int expected = 76;
+  CHECK_INTS_EQUAL(expected, nbase);
+  int n = rnastruct->get_number_of_structures();
+  expected = 1;
+  CHECK_INTS_EQUAL(expected,n);
+}
+
+
+
+/** check we get the correct label of the RA7680 structure */
+TESTWITHSETUP(RNAStructureFixture,labels)
+{
+  std::string lbl = rnastruct->get_ith_label(1);// Note using one-based numbering!
+  std::string expected = "ENERGY = 0.1  RA7680";
+  CHECK_STRINGS_EQUAL(expected, lbl);
+}
+
+
+
+/** check we get the correct dot-paren of the RA7680 CT file.
+ * This is what I get from RNAstructure ct2dot Results
+ * at http://rna.urmc.rochester.edu/RNAstructureWeb
+ * >   ENERGY = 0.1  RA7680
+GGGGGCGUAGCUCAGAUGGUAGAGCGCUCGCUUGGCGUGUGAGAGGUACCGGGAUCGAUACCCGGCGCCUCCACCA
+(((((((..((((........)))).(((((.......))))).....(((((.......))))))))))))....
+*/
+TESTWITHSETUP(RNAStructureFixture,dotparen)
+{
+  std::string dpar = rnastruct->get_dot_parens_structure(1);// Note using one-based numbering!
+  std::string expected = "(((((((..((((........)))).(((((.......))))).....(((((.......))))))))))))....";
+  CHECK_STRINGS_EQUAL(expected, dpar);
+}
+
+
+
  
 int main(){   
   TestResultStdErr result;
-  TestRegistry::runAllTests(result);
-  return (result.getFailureCount());
+  signal(SIGSEGV, handler);
+  signal(SIGABRT, handler);
+  try {
+    TestRegistry::runAllTests(result);
+    return (result.getFailureCount());
+  } catch(const std::exception &e) {
+    std::cout << "Caught exception: " << e.what() << std::endl;
+  }
+
 }
 
