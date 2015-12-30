@@ -40,10 +40,11 @@ class RNAStructureFixtureSetup : public TestSetup {
     std::string ct_file = "../testdata/RA7680.ct";
     rnastruct=new RNAStructure(ct_file);
    
+   
   }
 
   void teardown() {
-    /* nothing to do */
+    delete rnastruct;
   }
   protected:
     RNAStructure *rnastruct;
@@ -528,7 +529,23 @@ TESTWITHSETUP(RNAStructureFixture,dotparen)
   CHECK_STRINGS_EQUAL(expected, dpar);
 }
 
+/** check we get the correct label of the RA7680 structure */
+TESTWITHSETUP(RNAStructureFixture,intermolecular)
+{
+  bool intermol = rnastruct->intermolecular();// Note using one-based numbering!
+  bool expected = false;
+  CHECK(expected==intermol);
+}
 
+/** check erg1 (see latex tutorial) */
+TESTWITHSETUP(RNAStructureFixture,erg1)
+{
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  int val = dattab.erg1(2,71,3,70,rnastruct);
+  int expected = -150;
+  CHECK_INTS_EQUAL(expected, val);
+}
 
  
 int main(){   

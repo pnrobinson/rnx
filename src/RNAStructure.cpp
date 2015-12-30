@@ -248,7 +248,9 @@ std::string RNAStructure::get_ith_label(int i) const {
   return ctlabel_[i];
 }
 
-
+bool RNAStructure::intermolecular() const {
+  return intermolecular_;
+}
 
 /**
  * Note that we use the information in the basepr_ array to create
@@ -273,3 +275,46 @@ std::string RNAStructure::get_dot_parens_structure(int i) const {
   }
   return s;
 }
+
+
+
+
+/*********  Structstack ******************/
+
+Structstack::Structstack() {
+  sp_ = 0;  //set stack counter
+}
+
+/**
+ * The parameters a,b,c,d corresponds to the four columns of the array stk_
+ * @param a index i (see pull)
+ * @param b index j (see pull)
+ * @param c open (see pull)
+ * @param d null (see pull)
+ */
+void Structstack::push(int a, int b, int c, int d) {
+  sp_++;
+  stk_[sp_][0]= a;
+  stk_[sp_][1]= b;
+  stk_[sp_][2]= c;
+  stk_[sp_][3]= d;
+}
+
+
+
+
+void Structstack::pull(int *i, int *j, int *open, int *null, int *stz)
+{
+  if (sp_==0) {
+    *stz = 1;
+    return;
+  } else {
+    *stz = 0;
+    *i = stk_[sp_][0];
+    *j = stk_[sp_][1];
+    *open= stk_[sp_][2];
+    *null= stk_[sp_][3];
+    sp_--;
+  }
+}
+

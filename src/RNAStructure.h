@@ -32,7 +32,7 @@
  * a file such as a CT file.
  * This class et up to hold many possible structures of the same sequence
  * @author Peter Robinson
- * @version 0.0.1 Dec 29, 2015
+ * @version 0.0.3 Dec 30, 2015
  */
 class RNAStructure {
   /** (Maximum) length of the header line of a CT file. */
@@ -48,21 +48,36 @@ class RNAStructure {
   int numofstructures_;
   int pair[maxforce][2];
   int npair_;
+  /**
+   *  numseq[i] = a numeric that stands for the base in the ith position
+    of the sequence,
+    A = 1
+    C = 2
+    G = 3
+    U = 4
+  */
   int *numseq_;
+  /** array stores the historical numbering of a sequence */
   int *hnumber_;
   /** basepr_[i][j] = base to which the jth base is paired in the ith structure */
   int **basepr_;
   int ndbl_;
   int dbl_[maxforce];
+  /** The energy (the indices refer to the individual structures held in this object). 
+   * 10 x the Gibb's free energy of the ith structure, this
+   * is done so that integer math can be performed
+   *  and the nearest tenth of a kcal/mol can be
+   * followed*/
   int energy_[s_maxstructures+1];
   int inter_[3];
   int nnopair_;
   int nopair_[maxforce];
   int ngu_;
   int gu_[maxgu];
-  /** Labels for the structures in this CT file. */
+  /** Labels for the structures in this CT file.  a string of information for each of the structures*/
   std::string ctlabel_[s_maxstructures+1]; //[s_ctheaderlength];
-  /** Nucleotides */
+  /** Nucleotides is a character array to store the sequence information -- 
+   * this will allow the program to keep T and U from getting confused*/
   char *nucs_;
   bool intermolecular_;
   /** Has the class function allocate() beein called yet? */
@@ -70,31 +85,7 @@ class RNAStructure {
   bool templated_;
   bool **tem_;
   //int **fce;//[maxbases+1][2*maxbases]
-  //structure();
-  
-  /*structure is s
-    numofbases = 
-    numofstructures = 
-    numseq[i] = a numeric that stands for the base in the ith position
-    of the sequence,
-    A = 1
-    C = 2
-    G = 3
-    U = 4
-    basepr[i][j] = base to which the jth base is paired in the ith structure
-    force[i] = any information about the way the ith pair is treated when
-    folding; eg: forced single, etc
-    energy[i] = 10 * the Gibb's free energy of the ith structure, this
-    is done so that integer math can be performed
-    and the nearest tenth of a kcal/mol can be
-    followed
-    ctlabel = a string of information for each of the structures
-    fce = an array that can keep track of how each i,j pair is being
-    forced
-    hnumber array stores the historical numbering of a sequence
-    nucs is a character array to store the sequence information --
-    this will allow the program to keep T and U from getting confused
-  */
+ 
 
  public:
   int createFromCTFile(const char * path);
@@ -104,7 +95,9 @@ class RNAStructure {
   int get_number_of_structures() const;
   std::string get_ith_label(int i) const;
   std::string get_dot_parens_structure(int i) const;
-
+  bool intermolecular() const;
+  int ** basepr() { return basepr_; }
+  inline int numseq(int i) { return numseq_[i]; }
  private:
   void allocate(int size = s_maxbases);
   void allocatetem();
@@ -113,7 +106,20 @@ class RNAStructure {
 };
 
 
-
+/**
+ *  contains a stack of data, used by
+ * functions that analyze a structure piecewise
+ */
+class Structstack {
+  /** The actual stack. Indices=? */
+  int stk_[51][4];
+  /** stackpointer */
+  int sp_;
+ public:
+  Structstack();
+  void push(int a, int b, int c, int d);
+  void pull(int *i, int *j, int *open, int *null, int *stz);
+};
 
 
 

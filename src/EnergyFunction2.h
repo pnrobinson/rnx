@@ -69,7 +69,7 @@
 #endif
 
 
-
+class RNAStructure;
 
 
 class Datatable {
@@ -186,6 +186,9 @@ public:
   int get_iloop22(int a, int b, int c, int d, int j, int k, int l, int m) const;
   int get_coaxial_energy(int i, int j, int k, int l) const;
   int get_tstack_coaxial_energy(int i, int j, int k, int l) const;
+
+  void efn2(RNAStructure *ct, int structnum);
+  int erg1(int i, int j, int ip, int jp, RNAStructure *ct);
   
 private:
   void input_data();

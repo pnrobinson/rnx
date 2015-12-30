@@ -3,6 +3,7 @@
 
 
 #include "EnergyFunction2.h"
+#include "RNAStructure.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -38,6 +39,510 @@ Datatable::~Datatable() {
 const char* Datatable::get_data_dir() const {
   return dirpath_;
 }
+
+
+
+
+/*
+ * The energy calculator of Zuker
+ * calculates the free energy of each structural conformation in a structure
+ * structures cannot have pseudoknots
+ * @param structnum indicates which structure to calculate the free energy
+ * the default, 0, indicates "all" structures
+ */
+void Datatable::efn2(RNAStructure *ct, int structnum){
+  int i, j, k, open, null, stz, count, sum, sum1, ip = 0, jp = 0;
+  
+  Structstack stack;
+  int **coax, **helix;
+  int **fce;
+  int *energy;
+  int numbases;
+  bool inter, flag;
+  int start, stop; // start and stop refer to the indices of the structures to be analysed.
+  //int n5, n3;
+
+  /* stack = a place to keep track of where efn2 is located in a structure
+     inter = indicates whether there is an intermolecular interaction involved 
+     in a multi-branch loop
+  */
+
+  numbases=ct->get_number_of_bases();
+  int y = ct->get_number_of_structures();
+  energy = new int[y+1];  // analogous to Ct->energy_, dont forget to trasfer back.
+  // y+1 because we use one-based numbering.
+  /* Copy from ct */
+  int **basepr = ct->basepr();
+  
+ 
+  fce = new int *[numbases+1];
+  for (i=0; i<=numbases; i++)
+    fce[i] = new int [numbases + 1-i];
+
+  for (i=0; i<=numbases; i++) {
+    for (j=i; j<=numbases; j++) {
+      fce[i][j-i] = 0;
+    }
+  }
+
+  if (ct->intermolecular()) {//this indicates an intermolecular folding
+    /*
+    for (i=0; i<3; i++) {
+      forceinterefn(ct->inter[i], ct, fce);
+    }
+    */
+    std::cerr<<"[WARNING] Intermolecular folding not implemented yet.\n";
+    exit(1);
+  }
+  if (structnum!=0) {
+    start = structnum;
+    stop = structnum;
+  } else {
+    start = 1;
+    stop = ct->get_number_of_structures();
+  }
+  /** ITERATE OVER STRUCTURES */
+  for (count=start; count<=stop; count++){ 
+    energy[count]=0;
+    //push(&stack, 1, ct->numofbases, 1, 0); 
+    stack.push(1,numbases,1,0); //put whole structure onto the stack
+    
+  subroutine: //loop starts here ("goto" to speed operation)
+    stack.pull( &i, &j, &open, &null, &stz); // take a substructure off stack
+     while (stz!=1){
+      while (basepr[count][i]==j) { //are i and j paired?
+	while (basepr[count][i+1]==j-1) {//are i, j and i+1, j-1 stacked?
+	  energy[count]=energy[count] + erg1(i, j, i+1, j-1, ct);
+	  i++;
+	  j--;
+	}
+	sum = 0;
+	k = i + 1;
+	// now efn2 is past the paired region, so define
+	//
+	/*the intervening non-paired segment
+	while (k<j) {
+	  if (ct->basepr[count][k]>k)	{
+	    sum++;
+	    ip = k;
+	    k = ct->basepr[count][k] + 1;
+	    jp = k-1;
+	  } else if (ct->basepr[count][k]==0) k++;
+	}
+	if (sum==0) { //hairpin loop
+	  ct->energy[count]=ct->energy[count]+erg3(i,j,ct,data,fce[i][j-i]);
+	  goto subroutine;
+	}
+	else if (sum==1) { //bulge/internal loop
+	  ct->energy[count] = ct->energy[count] +
+	    erg2(i, j, ip, jp, ct, data, fce[i][ip-i], fce[jp][j-jp]);
+	  i = ip;
+	  j = jp;
+	} else { //multi-branch loop
+	  sum = sum + 1; //total helixes = sum + 1
+	  //initialize array helix and array coax
+	  helix = new int *[sum+1];
+	  for (k=0; k<=sum; k++) helix[k] = new int [2];
+	  coax = new int *[sum+1];
+	  for (k=0; k<=sum; k++) coax[k] = new int [sum+1];
+	  //find each helix and store info in array helix
+	  //	also place these helixes onto the stack
+	  //	and calculate energy of the intervening unpaired nucs
+	  helix[0][0] = i;
+	  helix[0][1] = j;
+	  inter = false;
+	  sum1 = 0;
+	  for (k=1; k<sum; k++) {
+	    ip = helix[k-1][0]+1;
+	    while (ct->basepr[count][ip]==0) ip++;
+	    if (fce[helix[k-1][0]][ip-helix[k-1][0]]==5) inter = true;
+	    //add the terminal AU penalty if necessary
+	    ct->energy[count] = ct->energy[count] +
+	      penalty(ip, ct->basepr[count][ip], ct, data);
+	    helix[k][1] = ip;
+	    helix[k][0] = ct->basepr[count][ip];
+	    push (&stack, ip, ct->basepr[count][ip], 1, 0);
+	    sum1 = sum1+(ip - helix[k-1][0]-1);
+	  }
+	  helix[sum][0] = helix[0][0];
+	  helix[sum][1] = helix[0][1];
+	  sum1 = sum1 + helix[sum][1]-helix[sum-1][0]-1;
+	  if (inter) {//intermolecular interaction
+	    ct->energy[count] = ct->energy[count]+data->init;
+	    //give the initiation penalty
+	  }
+	  else {//not an intermolecular interaction, treat like a normal
+            	//	multibranch loop:
+
+            	//give the multibranch loop bonus:
+	    ct->energy[count] = ct->energy[count] + data->efn2a;
+
+	    //give the energy for each entering helix
+	    ct->energy[count] = ct->energy[count] + sum*data->efn2c;
+
+	    if (sum1<=6) {ct->energy[count]=ct->energy[count] +
+			    sum1*(data->efn2b);
+	    }
+	    else {
+	      //June 10, 2008. M. Zuker corrects bug. 11. --> 110. !
+	      ct->energy[count]=ct->energy[count] +
+		6*(data->efn2b) + int(110.*log(double(((sum1)/6.))) + 0.5);
+	    }
+	  }
+	  //Now calculate the energy of stacking:
+	  for (k=0; k<=sum; k++) { //k+1 is number of helixes considered
+	    if (k==0) { //this is the energy of stacking bases
+	      for (ip=0; ip<sum; ip++) {
+		coax[ip][ip] = 0;
+		flag = false;
+		if (((ip==0) && ((helix[0][1]-helix[sum-1][0])>1))||
+		    ((ip!=0)&&((helix[ip][1]-helix[ip-1][0])>1))) flag=true;
+		if (((helix[ip+1][1] - helix[ip][0]) > 1)&&flag) {
+		  //use tstackm numbers
+		  //n5 = ct->numseq[helix[ip][0]+1];
+		  //n3 = ct->numseq[helix[ip][1]-1];
+		  coax[ip][ip] = data->tstkm[ct->numseq[helix[ip][0]]]
+		    [ct->numseq[helix[ip][1]]]
+		    [ct->numseq[helix[ip][0]+1]]
+		    [ct->numseq[helix[ip][1]-1]];
+
+		}
+		else {//do not use tstackm numbers, use individual terminal
+		  //	stack numbers
+		  if ((helix[ip+1][1] - helix[ip][0])>1) {
+		    coax[ip][ip] = 
+		      min(0, erg4(helix[ip][0], helix[ip][1],
+				  helix[ip][0]+1, 1, ct, data, false));
+		  }
+		  if (ip==0) {
+		    if ((helix[0][1]-helix[sum-1][0])>1) {
+		      coax[ip][ip] = coax[ip][ip] + 
+			min(0,erg4(helix[ip][0], helix[ip][1], helix[ip][1]-1,
+				   2, ct, data, false));
+		    }
+		  } else {
+		    if ((helix[ip][1]-helix[ip-1][0])>1) {
+		      coax[ip][ip] = coax[ip][ip] + 
+			min(0,erg4(helix[ip][0], helix[ip][1], helix[ip][1]-1,
+				   2, ct, data, false));
+		    }
+		  }
+		}
+	      }
+	      coax[sum][sum] = coax[0][0];
+	    }
+	    else if (k==1) {//now consider whether coaxial stacking is
+	      //more favorable than just stacked bases
+	      for (ip=0; ip<sum; ip++) {
+		//cout << ip << "\n";
+		//see if they're close enough to stack
+		if ((helix[ip+1][1] - helix[ip][0])==1) {
+		  //flush stacking:
+		  coax[ip][ip+1] = min((coax[ip][ip] + coax[ip+1][ip+1]),
+				       data->coax[ct->numseq[helix[ip][1]]]
+				       [ct->numseq[helix[ip][0]]]
+				       [ct->numseq[helix[ip+1][1]]]
+				       [ct->numseq[helix[ip+1][0]]]);
+		}
+		else if (((helix[ip+1][1] - helix[ip][0])==2)) {
+		  //possible intervening mismatch:
+		  coax[ip][ip+1] = coax[ip][ip]+coax[ip+1][ip+1];
+		  if (ip!=0) {
+		    if ((helix[ip][1] - helix[ip-1][0])>1) {
+		      coax[ip][ip+1] = 
+			min(coax[ip][ip+1],
+			    data->tstackcoax[ct->numseq[helix[ip][0]]]
+			    [ct->numseq[helix[ip][1]]]
+			    [ct->numseq[helix[ip][0]+1]]
+			    [ct->numseq[helix[ip][1]-1]]+
+			    data->coaxstack[ct->numseq[helix[ip][0]+1]]
+			    [ct->numseq[helix[ip][1]-1]]
+			    [ct->numseq[helix[ip+1][1]]]
+			    [ct->numseq[helix[ip+1][0]]]);
+		    }
+		  }
+		  else {
+		    //ip==0
+		    if ((helix[0][1]-helix[sum-1][0])>1) {
+		      coax[ip][ip+1] = 
+			min(coax[ip][ip+1],
+			    data->tstackcoax[ct->numseq[helix[ip][1]]]
+			    [ct->numseq[helix[ip][0]]]
+			    [ct->numseq[helix[ip][0]+1]]
+			    [ct->numseq[helix[ip][1]-1]] +
+			    data->coaxstack[ct->numseq[helix[ip][0]+1]]
+			    [ct->numseq[helix[ip][1]-1]]
+			    [ct->numseq[helix[ip+1][1]]]
+			    [ct->numseq[helix[ip+1][0]]]);
+		    }
+		  }
+		  
+		  if (ip!=(sum-1)) {
+		    if ((helix[ip+2][1]-helix[ip+1][0])>1) {
+		      coax[ip][ip+1] = 
+			min(coax[ip][ip+1],
+			    data->tstackcoax[ct->numseq[helix[ip][0]+1]]
+			    [ct->numseq[helix[ip+1][0]+1]]
+			    [ct->numseq[helix[ip+1][1]]]
+			    [ct->numseq[helix[ip+1][0]]] +
+			    data->coaxstack[ct->numseq[helix[ip][0]]]
+			    [ct->numseq[helix[ip][1]]]
+			    [ct->numseq[helix[ip][0]+1]]
+			    [ct->numseq[helix[ip+1][0]+1]]);
+		    }
+		  }
+		  else {
+		    //ip = sum - 1
+		    if ((helix[1][1]-helix[0][0])>1) {
+		      coax[ip][ip+1] = 
+			min(coax[ip][ip+1],
+			    data->tstackcoax[ct->numseq[helix[ip][0]+1]]
+			    [ct->numseq[helix[ip+1][0]+1]]
+			    [ct->numseq[helix[ip+1][1]]]
+			    [ct->numseq[helix[ip+1][0]]] +
+			    data->coaxstack[ct->numseq[helix[ip][0]]]
+			    [ct->numseq[helix[ip][1]]]
+			    [ct->numseq[helix[ip][0]+1]]
+			    [ct->numseq[helix[ip+1][0]+1]]);
+		    }
+		  }
+		}
+		else {//no possible stacks
+		  coax[ip][ip+1] = coax[ip][ip] + coax[ip+1][ip+1];
+		}
+	      }
+	    }
+	    else if (k>1&&k<sum) {
+	      for (i=0; (i+k)<=sum; i++) {
+		coax[i][i+k] = coax[i][i]+coax[i+1][i+k];
+		for (j=1; j<k; j++) {
+		  coax[i][i+k] = min(coax[i][i+k],
+				     coax[i][i+j]+coax[i+j+1][i+k]);
+		}
+	      }
+	    }
+	    else if (k==sum) {
+	      ct->energy[count]=ct->energy[count] + 
+		min(coax[0][sum-1],coax[1][sum]);
+	    }
+	  }
+	  for (k=0; k<=sum; k++) delete[] helix[k];
+	  delete[] helix;
+	  for (k=0; k<=sum; k++) delete[] coax[k];
+	  delete[] coax;
+	  goto subroutine;
+	}
+      }
+      //this is the exterior loop: , i = 1
+
+      //Find the number of helixes exiting the loop, store this in sum:
+      sum = 0;
+      while (i<ct->numofbases) { 	
+	if (ct->basepr[count][i]!=0) {
+	  sum++;
+	  i = ct->basepr[count][i];
+	}
+	i++;
+      }
+
+      //initialize array helix and array coax
+      helix = new int *[sum];
+      for (k=0; k<sum; k++) helix[k] = new int [2];
+
+      coax = new int *[sum];
+      for (k=0; k<sum; k++) coax[k] = new int [sum];
+
+
+      //find each helix and store info in array helix
+      //	also place these helixes onto the stack
+      ip = 1;
+      for (k=0; k<sum; k++) {
+	while (ct->basepr[count][ip]==0) ip++;
+	//add terminal au penalty if necessary
+	ct->energy[count]=ct->energy[count]+
+	  penalty(ip, ct->basepr[count][ip], ct, data);
+	helix[k][1] = ip;
+	helix[k][0] = ct->basepr[count][ip];
+	push (&stack, ip, ct->basepr[count][ip], 1, 0);
+	ip = ct->basepr[count][ip]+1;
+      }
+
+      //Now calculate the energy of stacking:
+
+      for (k=0; k<sum; k++) {//k+1 indicates the number of helixes consider
+      	if (k==0) { //this is the energy of stacking bases
+	  for (ip=0; ip<sum; ip++) {
+	    coax[ip][ip] = 0;
+	    if (ip<sum-1) {//not at 3' end of structure
+	      if ((helix[ip+1][1] - helix[ip][0])>1) {
+		//try 3' dangle
+		coax[ip][ip] = 
+		  min(0, erg4(helix[ip][0], helix[ip][1], helix[ip][0]+1, 1, 
+			      ct, data, false));
+	      }
+	    }
+	    else { //at 3' end of structure
+	      if ((ct->numofbases - helix[ip][0])>=1) {
+		//try 3' dangle
+		coax[ip][ip] = 
+		  min(0, erg4(helix[ip][0], helix[ip][1], helix[ip][0]+1, 1, 
+			      ct, data, false));
+	      }
+	    }
+	    if (ip==0) {
+	      if ((helix[0][1])>1) {
+		coax[ip][ip] = coax[ip][ip] + 
+		  min(0, erg4(helix[ip][0], helix[ip][1],helix[ip][1]-1, 2, 
+			      ct, data, false));
+	      }
+	    }
+	    else {
+	      if ((helix[ip][1]-helix[ip-1][0])>=1) {
+		coax[ip][ip] = coax[ip][ip] + 
+		  min(0, erg4(helix[ip][0], helix[ip][1],helix[ip][1]-1, 2, 
+			      ct, data, false));
+	      }
+	    }
+	  }
+	}
+	else if (k==1) {//now consider whether coaxial stacking is
+	  //more favorable than just stacked bases
+	  for (ip=0; ip<sum-1; ip++) {
+	    //see if they're close enough to stack
+	    if ((helix[ip+1][1] - helix[ip][0])==1) {
+	      //flush stacking:
+	      coax[ip][ip+1] = min((coax[ip][ip] + coax[ip+1][ip+1]),
+				   data->coax[ct->numseq[helix[ip][1]]]
+				   [ct->numseq[helix[ip][0]]]
+				   [ct->numseq[helix[ip+1][1]]]
+				   [ct->numseq[helix[ip+1][0]]]);
+	    }
+	    else if (((helix[ip+1][1] - helix[ip][0])==2)) {
+	      //possible intervening mismatch:
+	      coax[ip][ip+1] = coax[ip][ip]+coax[ip+1][ip+1];
+	      if (ip!=0) {
+		if ((helix[ip][1] - helix[ip-1][0])>1) {
+		  coax[ip][ip+1] = 
+		    min(coax[ip][ip+1],
+			data->tstackcoax[ct->numseq[helix[ip][0]]]
+			[ct->numseq[helix[ip][1]]]
+			[ct->numseq[helix[ip][0]+1]]
+			[ct->numseq[helix[ip][1]-1]]+
+			data->coaxstack[ct->numseq[helix[ip][0]+1]]
+			[ct->numseq[helix[ip][1]-1]]
+			[ct->numseq[helix[ip+1][1]]]
+			[ct->numseq[helix[ip+1][0]]]);
+		}
+	      }
+	      else {
+		//ip==0
+		if ((helix[0][1])>1) {
+		  coax[ip][ip+1] = 
+		    min(coax[ip][ip+1],
+			data->tstackcoax[ct->numseq[helix[ip][1]]]
+			[ct->numseq[helix[ip][0]]]
+			[ct->numseq[helix[ip][0]+1]]
+			[ct->numseq[helix[ip][1]-1]] +
+			data->coaxstack[ct->numseq[helix[ip][0]+1]]
+			[ct->numseq[helix[ip][1]-1]]
+			[ct->numseq[helix[ip+1][1]]]
+			[ct->numseq[helix[ip+1][0]]]);
+		}
+	      }
+	      
+	      if (ip!=(sum-2)) {
+		if ((helix[ip+2][1]-helix[ip+1][0])>1) {
+		  coax[ip][ip+1] = 
+		    min(coax[ip][ip+1],
+			data->tstackcoax[ct->numseq[helix[ip][0]+1]]
+			[ct->numseq[helix[ip+1][0]+1]]
+			[ct->numseq[helix[ip+1][1]]]
+			[ct->numseq[helix[ip+1][0]]] +
+			data->coaxstack[ct->numseq[helix[ip][0]]]
+			[ct->numseq[helix[ip][1]]]
+			[ct->numseq[helix[ip][0]+1]]
+			[ct->numseq[helix[ip+1][0]+1]]);
+		}
+	      }
+	      else {
+		//ip = sum - 2
+		if (helix[sum-1][0]<ct->numofbases) {
+		  coax[ip][ip+1] = 
+		    min(coax[ip][ip+1],
+			data->tstackcoax[ct->numseq[helix[ip][0]+1]]
+			[ct->numseq[helix[ip+1][0]+1]]
+			[ct->numseq[helix[ip+1][1]]]
+			[ct->numseq[helix[ip+1][0]]] +
+			data->coaxstack[ct->numseq[helix[ip][0]]]
+			[ct->numseq[helix[ip][1]]]
+			[ct->numseq[helix[ip][0]+1]]
+			[ct->numseq[helix[ip+1][0]+1]]);
+		}
+	      }
+	    }
+	    else {//no possible stacks
+	      coax[ip][ip+1] = coax[ip][ip] + coax[ip+1][ip+1];
+	    }
+	  }
+	}
+	else if (k>1) {
+	  for (i=0; (i+k)<sum; i++) {
+	    coax[i][i+k] = coax[i][i]+coax[i+1][i+k];
+	    for (j=1; j<k; j++) {
+	      coax[i][i+k] = min(coax[i][i+k], coax[i][i+j]+coax[i+j+1][i+k]);
+	    }
+	  }
+	}
+	if (k==(sum-1)) {
+	  ct->energy[count] = ct->energy[count] + coax[0][sum-1];
+	}
+      }
+      for (k=0; k<sum; k++) delete[] helix[k];
+      delete[] helix;
+      for (k=0; k<sum; k++) delete[] coax[k];
+      delete[] coax;
+      goto subroutine;
+    }
+  }
+	*/
+	/*  xxx
+  for (i=0; i<=ct->numofbases; i++)
+    delete[] fce[i];
+  delete[] fce;
+  return;
+ */
+      }
+     }
+  }
+}
+
+
+
+
+/**
+ * calculate the energy of stacked base pairs
+ * Recall that numseq[i] is a numeric that stands 
+ * for the base in the ith position  of the sequence,
+ * with A = 1; C = 2; G = 3; U = 4
+ */
+int Datatable::erg1(int i, int j, int ip, int jp, RNAStructure *ct)
+{
+
+  int energy;
+  int numbases = ct->get_number_of_bases();
+
+  if ( i==numbases || j==(numbases+1) ) {
+    //this is not allowed because n and n+1 are not covalently attached
+    energy = s_infinity;
+  }
+  else {
+    energy = stack_[ct->numseq(i)][ct->numseq(j)][ct->numseq(ip)][ct->numseq(jp)]
+      + eparam_[1];
+  }
+  return energy;
+}
+
+
 
 
 /**
