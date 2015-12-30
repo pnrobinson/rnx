@@ -127,9 +127,9 @@ int RNAStructure::createFromCTFile(const char * path) {
       strcpy(base+1, "\0");
       nucs_[count]=base[0];
       tonum(base, count); //convert base to numeric
-      if (numseq_[count]==5) {
+      if (numseq_[count]==5) {  /* 5 is a flag for intermolecular interactions, see erg3 */
 	intermolecular_ = true;
-	inter_[j] = count;
+	inter_[j] = count; /* the index of the jth base with intermolecular interactions. */
 	j++;
       }
       in >> temp; //ignore numbering

@@ -42,6 +42,20 @@ const char* Datatable::get_data_dir() const {
 
 
 
+/**
+ * 5 is used in erg3 as a flag for intermolecular interaction
+ */
+void forceinterefn(int dbl, RNAStructure* ct, int **w) {
+  int i, j;
+  int numbases = ct->get_number_of_bases();
+  for(i=dbl+1; i<=numbases; i++) {
+    for (j=1; j<dbl; j++) {
+      w[j][i-j] = 5;
+    }
+  }
+}
+
+
 
 /*
  * The energy calculator of Zuker
@@ -86,13 +100,9 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
   }
 
   if (ct->intermolecular()) {//this indicates an intermolecular folding
-    /*
     for (i=0; i<3; i++) {
-      forceinterefn(ct->inter[i], ct, fce);
+      forceinterefn(ct->inter(i), ct, fce);
     }
-    */
-    std::cerr<<"[WARNING] Intermolecular folding not implemented yet.\n";
-    exit(1);
   }
   if (structnum!=0) {
     start = structnum;
@@ -119,20 +129,24 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 	sum = 0;
 	k = i + 1;
 	// now efn2 is past the paired region, so define
-	//
-	/*the intervening non-paired segment
+	// the intervening non-paired segment between [i+2,j-1)
+	// given that we have a stack at i,j,i+1,j-1 above
 	while (k<j) {
-	  if (ct->basepr[count][k]>k)	{
+	  if (basepr[count][k]>k) { /* i.e., there is a base pairing from k to some j with j>k */
 	    sum++;
 	    ip = k;
-	    k = ct->basepr[count][k] + 1;
+	    k = basepr[count][k] + 1;
 	    jp = k-1;
-	  } else if (ct->basepr[count][k]==0) k++;
+	  } else if (basepr[count][k]==0) {
+	    k++;
+	  }
 	}
+	// sum now has the number of base pairings between i and j above.
 	if (sum==0) { //hairpin loop
-	  ct->energy[count]=ct->energy[count]+erg3(i,j,ct,data,fce[i][j-i]);
+	  energy[count]=energy[count]+erg3(i,j,ct,fce[i][j-i]);
 	  goto subroutine;
 	}
+	/*
 	else if (sum==1) { //bulge/internal loop
 	  ct->energy[count] = ct->energy[count] +
 	    erg2(i, j, ip, jp, ct, data, fce[i][ip-i], fce[jp][j-jp]);
@@ -541,6 +555,130 @@ int Datatable::erg1(int i, int j, int ip, int jp, RNAStructure *ct)
   }
   return energy;
 }
+
+
+
+
+/**
+ * calculate the energy of a hairpin loop:
+ * Note that the behaviour of the function is guided by the value
+ * of the argument "dbl".
+ * - dbl==1 the loop contains a base that should be double stranded
+ * - dbl==5 intermolecular interaction.
+ * @param i First position of hairpin (?)
+ * @param j Last position of hairpin (?)
+ * @param ct The Structure object being investigated
+ * @param dbl A flag This can come from fce and be 5 (force interfere, intermolecular interactions)
+ */
+int Datatable::erg3(int i, int j, RNAStructure *ct, int dbl)
+{
+  int energy, size, loginc, tlink, count, key, k;
+  int numbases;
+  /* size, size1, size2 = size of a loop
+     energy = energy calculated
+     loginc = the value of a log used in large hairpin loops
+  */
+
+
+  if (dbl==1) return s_infinity; //the loop contains a base that should be
+  //double stranded
+
+  else if (dbl==5) {//intermolecular interaction
+    //intermolecular "hairpin" free energy is that of intermolecular
+    //	initiation (init_) plus the stacked mismatch
+
+    energy = init_ + tstack_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)];
+    return energy;
+  }
+  numbases = ct->get_number_of_bases();
+ 
+  if (i<= numbases && j> numbases) {
+    //A hairpin cannot contain the ends of the sequence
+    energy = s_infinity;
+    return energy;
+  }
+ 
+  size = j-i-1;
+
+
+
+  if (size>30) {
+    //cout << "erg3:  i = "<<i<<"   j = "<<j<<"   "<<log(double ((size)/30.0))<<"\n";
+    loginc = static_cast<int>(prelog_*log(static_cast<double>(size)/30.0));
+
+    energy = tstkh_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)]
+      + hairpin_[30]+loginc+eparam_[4];
+  }
+  /*
+  else if (size<3) {
+    energy = data->hairpin[size] + data->eparam[4];
+    if (ct->numseq[i]==4||ct->numseq[j]==4) energy = energy+6;
+  }
+  else if (size==4) {
+    tlink = 0;
+    key = (ct->numseq[j])*3125 + (ct->numseq[i+4])*625 +
+      (ct->numseq[i+3])*125 + (ct->numseq[i+2])*25+(ct->numseq[i+1])*5+(ct->numseq[i]);
+    for (count=1; count<=data->numoftloops&&tlink==0; count++) {
+      if (key==data->tloop[count][0]) tlink = data->tloop[count][1];
+    }
+    energy = data->tstkh[ct->numseq[i]][ct->numseq[j]]
+      [ct->numseq[i+1]][ct->numseq[j-1]]
+      + data->hairpin[size] + data->eparam[4] + tlink;
+  }
+  else if (size==3) {
+    tlink = 0;
+    key = (ct->numseq[j])*625 +
+      (ct->numseq[i+3])*125 + (ct->numseq[i+2])*25+(ct->numseq[i+1])*5+(ct->numseq[i]);
+    for (count=1; count<=data->numoftriloops&&tlink==0; count++) {
+      if (key==data->triloop[count][0]) tlink = data->triloop[count][1];
+    }
+    energy = data->tstkh[ct->numseq[i]][ct->numseq[j]]
+      [ct->numseq[i+1]][ct->numseq[j-1]];
+    energy =	data->hairpin[size] + data->eparam[4] + tlink
+      +penalty(i, j, ct, data);
+  }
+
+  else {
+    energy = data->tstkh[ct->numseq[i]][ct->numseq[j]]
+      [ct->numseq[i+1]][ct->numseq[j-1]]
+      + data->hairpin[size] + data->eparam[4];
+  }
+  /////
+  //      cout << "erg3: "<< energy<<"\n";
+  //            cout << "i: " <<i<<"\n";
+  //      cout << "j: " <<j<<"\n";
+
+
+
+  //check for GU closeure preceded by GG
+  if (ct->numseq[i]==3&&ct->numseq[j]==4) {
+    if ((i>2&&i<ct->numofbases)||(i>ct->numofbases+2))
+      if (ct->numseq[i-1]==3&&ct->numseq[i-2]==3) {
+
+	energy = energy + data->gubonus;
+	//if (ct->numseq[i+1]==4&&ct->numseq[j-1]==4)
+	//	energy = energy - data->uubonus;
+	//if (ct->numseq[i+1]==3&&ct->numseq[j-1]==1)
+	//	energy = energy - data->uubonus;
+
+
+      }
+  }
+
+  //check for a poly-c loop
+  tlink = 1;
+  for (k=1; (k<=size)&&(tlink==1); k++) {
+    if (ct->numseq[i+k] != 2) tlink = 0;
+  }
+  if (tlink==1) {  //this is a poly c loop so penalize
+    if (size==3) energy = energy + data->c3;
+    else energy = energy + data->cint + size*data->cslope;
+  }
+
+  */
+  return energy;
+}
+
 
 
 

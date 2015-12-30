@@ -189,6 +189,7 @@ public:
 
   void efn2(RNAStructure *ct, int structnum);
   int erg1(int i, int j, int ip, int jp, RNAStructure *ct);
+  int erg3(int i, int j, RNAStructure *ct, int dbl);
   
 private:
   void input_data();

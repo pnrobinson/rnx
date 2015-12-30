@@ -69,6 +69,7 @@ class RNAStructure {
    *  and the nearest tenth of a kcal/mol can be
    * followed*/
   int energy_[s_maxstructures+1];
+  /* the index of the jth base with intermolecular interactions. */
   int inter_[3];
   int nnopair_;
   int nopair_[maxforce];
@@ -98,6 +99,7 @@ class RNAStructure {
   bool intermolecular() const;
   int ** basepr() { return basepr_; }
   inline int numseq(int i) { return numseq_[i]; }
+  inline int inter(int i) { return inter_[i]; }
  private:
   void allocate(int size = s_maxbases);
   void allocatetem();

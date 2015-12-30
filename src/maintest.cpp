@@ -547,6 +547,25 @@ TESTWITHSETUP(RNAStructureFixture,erg1)
   CHECK_INTS_EQUAL(expected, val);
 }
 
+
+/** check erg1 (see latex tutorial) */
+TESTWITHSETUP(RNAStructureFixture,erg3)
+{
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  int dbl = 1;
+  int e3 = dattab.erg3(2,50,rnastruct,dbl);
+  // expect "infinity"
+  CHECK(e3>9999);
+  // Now simulate the situation in which the haipin comrpises the
+  // entire sequence 1..n, in this case the energy should be infinity
+  int n = rnastruct->get_number_of_bases();
+  dbl=42; // not 1, and not 5--not sure what appropriate code is
+  e3 = dattab.erg3(1,n,rnastruct,dbl);
+  // expect "infinity"
+  CHECK(e3>9999);
+}
+
  
 int main(){   
   TestResultStdErr result;
