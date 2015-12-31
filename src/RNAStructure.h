@@ -100,6 +100,7 @@ class RNAStructure {
   int ** basepr() { return basepr_; }
   inline int numseq(int i) { return numseq_[i]; }
   inline int inter(int i) { return inter_[i]; }
+  inline char nucleotide_at(int i) { return nucs_[i]; }
  private:
   void allocate(int size = s_maxbases);
   void allocatetem();

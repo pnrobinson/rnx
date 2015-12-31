@@ -141,6 +141,7 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 	    k++;
 	  }
 	}
+	// when we get here, i and j are paired but i+1 and j-1 are not!
 	// sum now has the number of base pairings between i and j above.
 	if (sum==0) { //hairpin loop
 	  energy[count]=energy[count]+erg3(i,j,ct,fce[i][j-i]);
@@ -562,11 +563,13 @@ int Datatable::erg1(int i, int j, int ip, int jp, RNAStructure *ct)
 /**
  * calculate the energy of a hairpin loop:
  * Note that the behaviour of the function is guided by the value
+ * when this function is called from enf3, then i and j are paired but i+1 and j-1 are not!
+ * thus, i+1 and j-1 are the first bases of a hairpin.
  * of the argument "dbl".
  * - dbl==1 the loop contains a base that should be double stranded
  * - dbl==5 intermolecular interaction.
- * @param i First position of hairpin (?)
- * @param j Last position of hairpin (?)
+ * @param i Last paired base prior to a hairpin over (i+1)..(j-1) 
+ * @param j First paired base following a hairpin over (i+1)..(j-1)
  * @param ct The Structure object being investigated
  * @param dbl A flag This can come from fce and be 5 (force interfere, intermolecular interactions)
  */
@@ -597,47 +600,57 @@ int Datatable::erg3(int i, int j, RNAStructure *ct, int dbl)
     energy = s_infinity;
     return energy;
   }
- 
+  // size is the length of the loop between paired bases i and j,
+  // i.e., the length of (i+1),...,(j-1).
   size = j-i-1;
-
-
 
   if (size>30) {
     //cout << "erg3:  i = "<<i<<"   j = "<<j<<"   "<<log(double ((size)/30.0))<<"\n";
     loginc = static_cast<int>(prelog_*log(static_cast<double>(size)/30.0));
-
+    /*
+    std::cout << "\nct->numseq(" << i << ")=" << ct->numseq(i) << " for i=" << i << ":" << ct->nucleotide_at(i) << std::endl;
+    std::cout << "ct->numseq(" << j << ")=" << ct->numseq(j) << " for j=" << j << ":" << ct->nucleotide_at(j) << std::endl;
+    std::cout << "ct->numseq(" << i+1 << ")=" << ct->numseq(i+1) << " for i+1=" << i+1 << ":" << ct->nucleotide_at(i+1) << std::endl;
+    std::cout << "ct->numseq(" << j-1 << ")=" << ct->numseq(j-1) << " for j-1=" << j-1 << ":" << ct->nucleotide_at(j-1) << std::endl;
+    std::cout << "tstkh_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)]=" << tstkh_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)] << std::endl;
+    std::cout << "hairpin_[30]=" << hairpin_[30] << std::endl;
+    std::cout << "prelog_="<<prelog_ << std::endl;
+    std::cout << "loginc=" << loginc << std::endl;
+    */
     energy = tstkh_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)]
       + hairpin_[30]+loginc+eparam_[4];
   }
-  /*
   else if (size<3) {
-    energy = data->hairpin[size] + data->eparam[4];
-    if (ct->numseq[i]==4||ct->numseq[j]==4) energy = energy+6;
+    energy = hairpin_[size] + eparam_[4];
+    if (ct->numseq(i)==4||ct->numseq(j)==4)
+      energy = energy+6;
   }
-  else if (size==4) {
+  else if (size==4) { /* this is a tetraloop */
     tlink = 0;
-    key = (ct->numseq[j])*3125 + (ct->numseq[i+4])*625 +
-      (ct->numseq[i+3])*125 + (ct->numseq[i+2])*25+(ct->numseq[i+1])*5+(ct->numseq[i]);
-    for (count=1; count<=data->numoftloops&&tlink==0; count++) {
-      if (key==data->tloop[count][0]) tlink = data->tloop[count][1];
+    key = (ct->numseq(j))*3125 + (ct->numseq(i+4))*625 +
+      (ct->numseq(i+3))*125 + (ct->numseq(i+2))*25+(ct->numseq(i+1))*5+(ct->numseq(i));
+    for (count=1; count<=numoftloops_ && tlink==0; count++) {
+      if (key==tloop_[count][0])
+	tlink = tloop_[count][1]; /* sets to energy of one of the sequences in tlink */
     }
-    energy = data->tstkh[ct->numseq[i]][ct->numseq[j]]
-      [ct->numseq[i+1]][ct->numseq[j-1]]
-      + data->hairpin[size] + data->eparam[4] + tlink;
+    /* tlink is either zero or is an additive factor for a "special" sequence 
+     * (there are about 30 in our data from tloop.dat). */
+    energy = tstkh_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)]
+      + hairpin_[size] + eparam_[4] + tlink;
   }
   else if (size==3) {
     tlink = 0;
-    key = (ct->numseq[j])*625 +
-      (ct->numseq[i+3])*125 + (ct->numseq[i+2])*25+(ct->numseq[i+1])*5+(ct->numseq[i]);
-    for (count=1; count<=data->numoftriloops&&tlink==0; count++) {
-      if (key==data->triloop[count][0]) tlink = data->triloop[count][1];
+    key = (ct->numseq(j))*625 +
+      (ct->numseq(i+3))*125 + (ct->numseq(i+2))*25+(ct->numseq(i+1))*5+(ct->numseq(i));
+    for (count=1; count<=numoftriloops_ && tlink==0; count++) {
+      if (key==triloop_[count][0])
+	tlink = triloop_[count][1];
     }
-    energy = data->tstkh[ct->numseq[i]][ct->numseq[j]]
-      [ct->numseq[i+1]][ct->numseq[j-1]];
-    energy =	data->hairpin[size] + data->eparam[4] + tlink
-      +penalty(i, j, ct, data);
+    /* Why is energy computed twice differently? */
+    energy = tstkh_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)];
+    energy = hairpin_[size] + eparam_[4] + tlink +penalty(i, j, ct);
   }
-
+ /*
   else {
     energy = data->tstkh[ct->numseq[i]][ct->numseq[j]]
       [ct->numseq[i+1]][ct->numseq[j-1]]
@@ -792,6 +805,11 @@ void Datatable::input_data() {
   ss << dirpath_ <<  "/int11.dat";
   s = ss.str();
   input_int11_dat(s);
+  /** 12) triloop.dat */
+  ss.str(std::string()); /* reset */
+  ss << dirpath_ <<  "/triloop.dat";
+  s = ss.str();
+  input_triloop_dat(s);
    
 }
 
@@ -1018,8 +1036,8 @@ void Datatable::input_miscloop_dat(const std::string &path) {
   infile >> temp;
   prelog_ = atof(temp.c_str()) * 100.0;
   //data->prelog = (data->prelog)*100.0;
+  // 1.07857764 *100 = 107.857764 
 
- 
   infile >> token;
   while(token != "-->")
     infile >> token;
@@ -1522,8 +1540,7 @@ void Datatable::input_triloop_dat(const std::string &path) {
   infile >> token;
 
   for (count=1; count<=s_maxtloop && !infile.eof(); count++){
-    std::cout << token<<"\n";
-
+    //std::cout << token<<"\n";
     numoftriloops_++;
     //strcpy(base, token.c_str());
     base[0]=token[0];
@@ -1547,7 +1564,6 @@ void Datatable::input_triloop_dat(const std::string &path) {
     triloop_[numoftriloops_][0] = triloop_[numoftriloops_][0]+ 625*tonumi(base);
     infile >> temp;
     triloop_[numoftriloops_][1] = static_cast<int> (floor (100.0*atof(temp)+0.5));
-
     //cout << data->triloop[data->numoftriloops][1]<< "  "<<data->triloop[data->numoftriloops][0]<<"\n";
 
     infile >> token;
@@ -1650,6 +1666,36 @@ void Datatable::input_coaxstack_dat(const std::string &path) {
     }
   }
 }
+
+
+
+/**
+ * this function calculates whether a terminal pair i, j requires the end penalty
+ * It returns the value of auend_ if either position i or j is a U (then the other
+ * position would be an A). Otherwise it returns zero.
+ */
+int Datatable::penalty(int i, int j, RNAStructure* ct) {
+
+  /*if ((ct->numseq[i]==1)||(ct->numseq[j]==1)) {
+  //this is an A-U pair
+  return data->auend;
+  }
+
+  else if ((ct->numseq[i]==4)&&(ct->numseq[j]==3)) {
+  //this is a G-U pair with 3' terminal U
+  return data->auend;
+  }
+  else if ((ct->numseq[i]==4)&&(ct->numseq[j]==3)) {
+  //this is a G-U pair with 3' terminal G
+  return data->auend;
+  } */
+  if (ct->numseq(i)==4||ct->numseq(j)==4)
+    return auend_;
+  else return 0; //no end penalty
+
+
+}
+
 
 /**
  * this function calculates whether a terminal pair i, j requires the end penalty

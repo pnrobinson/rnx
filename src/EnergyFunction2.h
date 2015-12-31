@@ -40,9 +40,9 @@
  *
  * \author Peter Robinson
  *
- * \version  0.0.2
+ * \version  0.0.31
  *
- * \date 28 December 2015
+ * \date 31 December 2015
  *
  * Contact: peter.robinson@charite.de
  *
@@ -98,7 +98,10 @@ class Datatable {
   int hairpin_[31];
   /** stacking energy */
   int stack_[6][6][6][6];
-  /** STACKING ENERGIES : TERMINAL MISMATCHES AND BASE-PAIRS */
+  /** STACKING ENERGIES : TERMINAL MISMATCHES AND BASE-PAIRS.
+   * I infer from the way erg3 is written: tstack_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)]; 
+   * the meaning is that there is a base pair i.j but i+1 and j-1 are not base paired. This can be the case if
+   * there is a hairpin loop between i and j. */
   int tstkh_[6][6][6][6];
   /** STACKING ENERGIES : TERMINAL MISMATCHES AND BASE-PAIRS (unclear what distinction is to tstkh?) */
   int tstki_[6][6][6][6];
@@ -106,7 +109,8 @@ class Datatable {
    * the left column is a numerical value calculated from the sequence of the loop using the
    * tonumi function, e.g., for tloop_[1][1] =7343 for sequence GGGGAC. */
   int tloop_[s_maxtloop+1][2];
-  /** Number of tetraloops */
+  /** Number of tetraloops. Note a tetraloop is defined as a loop between a base pair i.j with
+   * i,i+1,i+2,i+3,i+4,i+5=j, i.e., there is a loop of exactly four unpaired bases between i and j.*/
   int numoftloops_;
   /** Data tables for symetric interior loops of size 4 (int22.dat). Key iloop22[a][b][c][d][j][l][k][m] =
    * a j l b
@@ -209,7 +213,7 @@ private:
   void input_tstack_dat(const std::string &path);
   void input_tstackm_dat(const std::string &path);
   void input_int11_dat(const std::string &path);
-  
+  int penalty(int i, int j, RNAStructure* ct);
 //this function calculates whether a terminal pair i, j requires the end penalty
   int penalty2(int i, int j) const; 
 

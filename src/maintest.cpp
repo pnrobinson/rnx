@@ -564,6 +564,48 @@ TESTWITHSETUP(RNAStructureFixture,erg3)
   e3 = dattab.erg3(1,n,rnastruct,dbl);
   // expect "infinity"
   CHECK(e3>9999);
+  // Now check for hairpin loops longer than 30 nt.
+  // To simulate this with the sequence of our tRNA
+  // take i=10 (G), j=56 (C), then i+1=11 (C), j-1=55(U)
+  // the corresponding indices to tstackh are  [G][C][C][U] or [3][2][2][4]
+  // Looking this value up in tstackh.dat, I see -0.5 or -50
+  // We need to add this to the value of hairpin_[30]
+  // This is parsed from loop dat, and can be seen in the "HAIRPIN" column of
+  // that file, row 30 to be 7.7 or 770
+  // Therefore, we expect -50+770+ 107.857764*log(n/30)
+  // where n is the size of the loop, j-i+1=56-10+1=47
+  //ln(47/30)=0.4490
+  // 107.857764*log(n/30) = 43
+  // Therefore, we expect -50+770+43=763
+  // energy = tstkh_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)]
+  //    + hairpin_[30]+loginc+eparam_[4];
+  int expected = 763;
+  e3 = dattab.erg3(10,56,rnastruct,dbl);
+  CHECK_INTS_EQUAL(expected,e3);
+  // Now check for hairpin loops shorter than 3 nucleotides. This is prohibited by
+  // nearest neighbor theory and should return infinity.
+  // The following means that that bases 10 and 12 are paired and there is a "loop"
+  // of size 1 between them.
+  e3 = dattab.erg3(10,12,rnastruct,dbl);
+  CHECK(e3>9999);
+  // The following means that that bases 10 and 13 are paired and there is a "loop"
+  // of size 2 between them.
+  e3 = dattab.erg3(10,13,rnastruct,dbl);
+  CHECK(e3>9999);
+  // Simulate a tetraloop over positions 13..18: CAGAUG
+  // This should be a simple lookup in tstkh
+  // i=13 (C), i+1=14 (A), j=18 (G) j-1=17 (U)
+  // indices are [2][3][1][4]
+  // The file tstackh.dat shows -1.8 at this
+  //position.
+  expected = 380;
+  e3 = dattab.erg3(13,18,rnastruct,dbl);
+  CHECK_INTS_EQUAL(expected,e3);
+  // Simulate a triloop over positions   31=CUUGG=35
+  // see latex document for details.
+  expected = 570;
+  e3 = dattab.erg3(31,35,rnastruct,dbl);
+  CHECK_INTS_EQUAL(expected,e3);
 }
 
  
