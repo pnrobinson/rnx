@@ -193,8 +193,9 @@ public:
 
   void efn2(RNAStructure *ct, int structnum);
   int erg1(int i, int j, int ip, int jp, RNAStructure *ct);
+  int erg2(int i, int j, int ip, int jp, RNAStructure *ct, int a, int b);
   int erg3(int i, int j, RNAStructure *ct, int dbl);
-  
+  int erg4(int i, int j, int ip, int jp, RNAStructure *ct, bool lfce) const;
 private:
   void input_data();
   void input_loop_dat(const std::string &path);
@@ -215,7 +216,8 @@ private:
   void input_int11_dat(const std::string &path);
   int penalty(int i, int j, RNAStructure* ct);
 //this function calculates whether a terminal pair i, j requires the end penalty
-  int penalty2(int i, int j) const; 
+  int penalty2(int i, int j) const;
+ 
 
 
 

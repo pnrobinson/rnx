@@ -18,7 +18,7 @@ maintest: $(objects)
 	@echo "Compiling main unit test program..."
 	${CC} -o maintest $(objects) ${LIBFLAGS} 
 	@echo "Running unit tests..."
-	./maintest
+	#./maintest
 
 valgrind:
 	valgrind ./maintest

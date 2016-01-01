@@ -548,7 +548,7 @@ TESTWITHSETUP(RNAStructureFixture,erg1)
 }
 
 
-/** check erg1 (see latex tutorial) */
+/** check erg3 (see latex tutorial) */
 TESTWITHSETUP(RNAStructureFixture,erg3)
 {
   const char *dir = "../dat";
@@ -606,6 +606,147 @@ TESTWITHSETUP(RNAStructureFixture,erg3)
   expected = 570;
   e3 = dattab.erg3(31,35,rnastruct,dbl);
   CHECK_INTS_EQUAL(expected,e3);
+  // Check a longer loop, from position 13 (C)-14(A)-...21(A)-22(G)
+  // index[2][3][1][1]. -1.5 or -150
+  // then we have a hairpin penalty value for a length of 22-1311=8 of 5.6 or 560
+  // Note that size does not include the two paired bases i and j
+  // expected is thus -150+560=410
+  expected = 410;
+  e3 = dattab.erg3(13,22,rnastruct,dbl);
+  CHECK_INTS_EQUAL(expected,e3);
+}
+
+
+/** check erg2 (see latex tutorial) */
+TESTWITHSETUP(RNAStructureFixture,erg2)
+{
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  int dbl = 42;
+  int e2;
+  int a=42;
+  int b=42; // a and b have no meaning for the following test.
+  int numbases = rnastruct->get_number_of_bases();
+  //A loop cannot contain the ends of the sequence (where one of the indices is more than the seqlen - duh
+  //Test that function returns "infinite" energy
+  e2 =  dattab.erg2(10, numbases+1, 25, 30, rnastruct, a, b);
+  CHECK(e2>9999);
+  e2 =  dattab.erg2(10, 15, numbases+1, 30, rnastruct, a, b);
+  CHECK(e2>9999);
+}
+
+
+
+TEST (getnumbases,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  std::string ct_file = "../testdata/SNORA17.ct";
+  RNAStructure rnastruct(ct_file);
+  int numbases = rnastruct.get_number_of_bases();
+  int expected = 132;
+  CHECK_INTS_EQUAL(expected,numbases);
+}
+
+
+TEST (rnabulge_1,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  std::string ct_file = "../testdata/SNORA17.ct";
+  RNAStructure rnastruct(ct_file);
+  int dbl = 42;
+  int e2;
+  int a=42;
+  int b=42; // a and b have no meaning for the following test.
+  // Note that base $U^{108}$ is a bulge base, and thus
+  //there is a bulge loops formed by base pairs $i.j$=($G^{89}$,$C^{109}$) and $i',j'$=($U^{90}$,$A^{107}$)
+  // We are thus testing a bulge loop of size 1.
+  // Bulge loops up to size 30 are assigned free energies from the loop file
+  // Looking up the entry for "BULGE" in loop.dat for size=1, we see 3.8 (i.e., we expect 380)
+  // we also add the corresponding entry from stack.dat stack_[G][C][U][A] = stack_[3][2][4][1]=-220
+  // thus we expect 380-220=160
+  int i=89;
+  int j=109;
+  int ip=90;
+  int jp=107;
+  e2 = dattab.erg2(i,j,ip,jp, &rnastruct, a, b);
+  int expected = 160;
+  CHECK_INTS_EQUAL(expected,e2);
+  // Now check a bulge of length 3
+  i=15;
+  j=47;
+  ip = 19;
+  jp = 46;
+  // The energy for a size-3 bulge is calculate directly from bulge_[3]
+  // There is an additional penalty of 50 for the G:U base pairing
+  // (auend_).
+  e2 = dattab.erg2(i,j,ip,jp, &rnastruct, a, b);
+  expected = 370;
+  CHECK_INTS_EQUAL(expected,e2);
+}
+
+/**
+ * Testing inner loop 2x2 with mir283 structure
+ */
+TEST (iloop22_mir283,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  std::string ct_file = "../testdata/mir283.ct";
+  RNAStructure rnastruct(ct_file);
+  int dbl = 42;
+  int e2;
+  int a=42;
+  int b=42; // a and b have no meaning for the following test.
+  int i=10;
+  int j=94;
+  int ip=13;
+  int jp=91;
+  // The energy for the 2x2 innerloop in microrna-282
+  // see latex document for the details.
+  e2 = dattab.erg2(i,j,ip,jp, &rnastruct, a, b);
+  int expected = 120;
+  CHECK_INTS_EQUAL(expected,e2);
+}
+
+
+/**
+ * Testing the u3 file
+ * Note that
+ * (1) There are five structures (try $ grep dG u3.ct)
+ */
+TEST (u3,EnergyFunction2) {
+  std::string ct_file = "../testdata/u3.ct";
+  RNAStructure rnastruct(ct_file);
+  int n = rnastruct.get_number_of_structures();
+  int expected = 5;
+  CHECK_INTS_EQUAL(expected,n);
+  std::string label = rnastruct.get_ith_label(1);
+  std::string expected_str = "dG = -82.50 [Initially -85.70] AAPY01491858 1/243-27";
+  CHECK_STRINGS_EQUAL(expected_str,label);
+
+
+}
+/**
+ * Testing inner loop 2x1 with u3 structure
+ */
+TEST (iloop21_u3,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  std::string ct_file = "../testdata/u3.ct";
+  std::cout << "About to input u3\n";
+  RNAStructure rnastruct(ct_file);
+  int dbl = 42;
+  int e2;
+  int a=42;
+  int b=42; // a and b have no meaning for the following test.
+  int i=19;
+  int j=50;
+  int ip=22;
+  int jp=48;
+  // The energy for the 2x2 innerloop in microrna-282
+  // see latex document for the details.
+  e2 = dattab.erg2(i,j,ip,jp, &rnastruct, a, b);
+  int expected = 120;
+  CHECK_INTS_EQUAL(expected,e2);
 }
 
  

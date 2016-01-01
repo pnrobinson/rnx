@@ -32,7 +32,7 @@
  * a file such as a CT file.
  * This class et up to hold many possible structures of the same sequence
  * @author Peter Robinson
- * @version 0.0.3 Dec 30, 2015
+ * @version 0.0.4 Jan 1, 2016
  */
 class RNAStructure {
   /** (Maximum) length of the header line of a CT file. */
@@ -90,6 +90,7 @@ class RNAStructure {
 
  public:
   int createFromCTFile(const char * path);
+  int createFromCTFileOLD(const char * path);
   RNAStructure(const std::string &path);
   ~RNAStructure();
   int get_number_of_bases() const;

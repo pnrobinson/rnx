@@ -17,7 +17,9 @@
  * thermodynamic data files.
  */
 
-
+inline int min(int i, int j) {
+  return (i < j) ? i : j;
+}
 
 Datatable::Datatable(const char* directory_path) {
   size_t len = strlen(directory_path);
@@ -147,13 +149,15 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 	  energy[count]=energy[count]+erg3(i,j,ct,fce[i][j-i]);
 	  goto subroutine;
 	}
-	/*
-	else if (sum==1) { //bulge/internal loop
-	  ct->energy[count] = ct->energy[count] +
-	    erg2(i, j, ip, jp, ct, data, fce[i][ip-i], fce[jp][j-jp]);
+	else if (sum==1) { /*bulge/internal loop*/
+	  std::cout << "§§§§§sum==1, energy[count]= "<< energy[count] << std::endl;
+	  energy[count] = energy[count] +
+	    erg2(i, j, ip, jp, ct, fce[i][ip-i], fce[jp][j-jp]);
 	  i = ip;
 	  j = jp;
-	} else { //multi-branch loop
+	  std::cout << "sum==1, energy[count]= "<< energy[count] << std::endl;
+	}	/*
+		  else { //multi-branch loop
 	  sum = sum + 1; //total helixes = sum + 1
 	  //initialize array helix and array coax
 	  helix = new int *[sum+1];
@@ -558,6 +562,235 @@ int Datatable::erg1(int i, int j, int ip, int jp, RNAStructure *ct)
 }
 
 
+/**calculate the energy of a bulge/internal loop.
+ * where i is paired to j; ip is paired to jp; ip > i; j > jp. 
+ * Note that a and b are flags that are coming from fce[i][ip-i], fce[jp][j-jp]
+ * in the first call to erg2 in efn2 above.
+ * @param i The loop is defined by i and j which are paired with each other
+ * @param j The loop is defined by i and j which are paired with each other 
+ * @param ip ip is paired to jp with i < ip < jp < j
+ * @param jp ip is paired to jp with i < ip < jp < j
+ * @param ct The structure being tested
+ * @param a ??
+ * @param b ??
+ */
+int Datatable::erg2(int i, int j, int ip, int jp, RNAStructure *ct, int a, int b)
+{
+  int energy = 0, size, size1, size2, loginc, lopsid, energy2; //tlink, count, key, e[4]
+  int numbases;
+  /* size, size1, size2 = size of a loop
+     energy = energy calculated
+     loginc = the value of a log used in large hairpin loops
+  */
+
+  numbases = ct->get_number_of_bases();
+
+  std::cout << "\nin erg2"<<std::endl;
+  std::cout << "i="<<i<<", j="<<j<<", ip="<<ip<<", jp="<<jp<<std::endl;
+  std::cout << "numbases = " << numbases << std::endl;
+  if ( ( i<=numbases && ip > numbases ) ||
+       ( jp<=numbases && j> numbases) ) {
+    //A loop cannot contain the ends of the sequence
+    energy=s_infinity;
+    return energy;
+  }
+
+ 
+  size1 = ip-i-1;  // l_s^1 .. see latex
+  size2 = j - jp - 1; // l_s_^2 .. see latex documentation
+ 
+  if ((a!=0)||(b!=0)) {
+    if ((a==1)||(b==1))
+      return s_infinity; //the loop contains a nuc that
+    //should be double stranded
+    else if (a==5) {
+      //the loop is actually between two strands (ie: intermolecular)
+      if (size2>1) {//free energy is that of two terminal mismatches
+	//and the intermolecular initiation
+	energy = init_ + tstack_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)] +
+	  tstack_[ct->numseq(jp)][ct->numseq(ip)][ct->numseq(jp+1)][ct->numseq(ip-1)];
+      } 
+      else if (size2==1) {//find the best terminal mismatch and terminal
+	//stack free energies combination
+	energy = init_ + tstack_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)] +
+	  erg4 (jp, ip, ip-1, 2, ct, false)+penalty(jp, ip, ct);
+	energy2 = init_ + tstack_[ct->numseq(jp)][ct->numseq(ip)][ct->numseq(jp+1)][ct->numseq(ip-1)] +
+	  erg4 (i, j, i+1, 1, ct, false)+penalty(i, j, ct);
+	energy = min (energy, energy2);
+	//if ((ct->numseq[i+1]!=5)&&(ct->numseq[ip-1]!=5)) {
+	//now consider if coaxial stacking is better:
+	energy2 = init_ + tstackcoax_[ct->numseq(jp)][ct->numseq(ip)][ct->numseq(jp+1)][ct->numseq(ip-1)]
+	  + coaxstack_[ct->numseq(jp+1)][ct->numseq(ip-1)][ct->numseq(j)][ct->numseq(i)]+penalty(i, j, ct)+penalty(jp, ip, ct);
+	energy = min(energy, energy2);
+	energy2 = init_ + tstackcoax_[ct->numseq(jp)][ct->numseq(ip)][ct->numseq(j-1)][ct->numseq(ip-1)]
+	  + coaxstack_[ct->numseq(j-1)][ct->numseq(ip-1)][ct->numseq(j)][ct->numseq(i)]+penalty(i, j, ct)+penalty(jp, ip, ct);
+	energy = min(energy, energy2);
+	//}
+      }
+      else if (size2==0) {//just have dangling ends or flush stacking
+	energy = init_ + erg4 (jp, ip, ip-1, 2, ct, false) +
+	  erg4 (i, j, i+1, 1, ct, false)+penalty(i, j, ct)+penalty(jp, ip, ct);
+	energy2 = init_ + coax_[ct->numseq(ip)][ct->numseq(jp)][ct->numseq(j)][ct->numseq(i)]+penalty(i, j, ct)+penalty(jp, ip, ct);
+	energy = min(energy, energy2);
+      }
+      return energy;
+    } /* end of a==5 loop, intermolecular */
+    
+    else if (b==5) {
+      //the loop is actually between two strands (ie: intermolecular)
+      if (size1>1) {//free energy is that of two terminal mismatches
+	//and the intermolecular initiation
+	energy = init_ + tstack_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)] +
+	  tstack_[ct->numseq(jp)][ct->numseq(ip)][ct->numseq(jp+1)][ct->numseq(ip-1)];
+      }
+      else if (size1==1) {//find the best terminal mismatch and terminal
+	//stack free energies combination
+	energy = init_ + tstack_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)] +
+	  erg4 (ip, jp, jp+1, 1, ct, false)+penalty(ip, jp, ct);
+	energy2 = init_ + tstack_[ct->numseq(jp)][ct->numseq(ip)][ct->numseq(jp+1)][ct->numseq(ip-1)] +
+	  erg4(i, j, j-1, 2, ct, false)+penalty(i, j, ct);
+
+	energy = min (energy, energy2);
+	//if ((ct->numseq[i+1]!=5)&&(ct->numseq[ip-1]!=5)) {
+	//now consider if coaxial stacking is better:
+	energy2 = init_ + tstackcoax_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)]
+	  + coaxstack_[ct->numseq(i+1)][ct->numseq(j-1)][ct->numseq(ip)][ct->numseq(jp)]
+	  + penalty(i, j, ct) + penalty(jp, ip, ct);
+	energy = min(energy, energy2);
+	energy2 = init_ + tstackcoax_[ct->numseq(i)][ct->numseq(j)][ct->numseq(ip-1)][ct->numseq(j-1)]
+	  + coaxstack_[ct->numseq(ip-1)][ct->numseq(j-1)][ct->numseq(ip)][ct->numseq(jp)]
+	  + penalty(i, j, ct) + penalty(jp, ip, ct);
+	energy = min(energy, energy2);
+	//}
+      }
+      else if (size1==0) {//just have dangling ends or flush stacking
+	energy = init_ + erg4 (jp, ip, jp+1, 1, ct, false) +
+	  erg4 (i, j, j-1, 2, ct, false) + penalty(i, j, ct) + penalty(jp, ip, ct);
+	energy2 = init_ + coax_[ct->numseq(j)][ct->numseq(i)][ct->numseq(ip)][ct->numseq(j)]
+	   + penalty(i, j, ct) + penalty(jp, ip, ct);
+	energy = min(energy, energy2);
+      }
+      return energy;
+
+    } /* end of b==5 loop. intermolecular */
+  }
+  //a typical internal or bulge loop:
+  size1 = ip-i-1;
+  size2 = j - jp - 1;
+  if (size1==0||size2==0) {//bulge loop
+    size = size1+size2;
+    if (size==1) {
+      energy = stack_[ct->numseq(i)][ct->numseq(j)][ct->numseq(ip)][ct->numseq(jp)]
+	+ bulge_[size] + eparam_[2];
+      // std::cout << " stack_[ct->numseq(i)][ct->numseq(j)][ct->numseq(ip)][ct->numseq(jp)]=" <<  stack_[ct->numseq(i)][ct->numseq(j)][ct->numseq(ip)][ct->numseq(jp)] << std::endl;
+      //std::cout << " bulge_[size]="<< bulge_[size] << "  and eparam_[2]=" << eparam_[2] << std::endl;
+    }
+    else if (size>30) {
+      loginc = int(prelog_*log(double ((size)/30.0)));
+      energy = bulge_[30] + loginc + eparam_[2];
+      energy = energy + penalty(i, j, ct) + penalty(jp, ip, ct);
+
+    }
+    else {
+      energy = bulge_[size] + eparam_[2];
+      energy = energy + penalty(i, j, ct) + penalty(jp, ip, ct);
+    }
+  }
+  else {//internal loop
+    size = size1 + size2;
+    lopsid = abs(size1-size2);
+
+    if (size>30) {
+
+      loginc = int( prelog_*log((double ((size))/30.0)));
+      if ((size1==1||size2==1) && gail_) {
+	energy = tstki_[ct->numseq(i)][ct->numseq(j)][1][1] +
+	  tstki_[ct->numseq(jp)][ct->numseq(ip)][1][1] +
+	  inter_[30] + loginc + eparam_[3] +
+	  min(maxpen_, (lopsid*poppen_[min(2, min(size1, size2))]));
+      }
+      else {
+	energy = tstki_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)] +
+	  tstki_[ct->numseq(jp)][ct->numseq(ip)][ct->numseq(jp+1)][ct->numseq(ip-1)] +
+	  inter_[30] + loginc + eparam_[3] +
+	  min(maxpen_, (lopsid*poppen_[min(2, min(size1, size2))]));
+      }
+    }
+    else if ((size1==2)&&(size2==2)) {//2x2 internal loop
+      energy = iloop22_[ct->numseq(i)][ct->numseq(ip)][ct->numseq(j)][ct->numseq(jp)]
+	[ct->numseq(i+1)][ct->numseq(i+2)][ct->numseq(j-1)][ct->numseq(j-2)];
+    }
+    else if ((size1==1)&&(size2==2)) {//2x1 internal loop
+      energy = iloop21_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)]
+	[ct->numseq(j-1)][ct->numseq(jp+1)][ct->numseq(ip)][ct->numseq(jp)];
+      std::cout << "2x1" << std::endl;
+    }
+   
+    else if ((size1==2)&&(size2==1)) {//1x2 internal loop
+      energy = iloop21_[ct->numseq(jp)][ct->numseq(ip)][ct->numseq(jp+1)][ct->numseq(ip-1)][ct->numseq(i+1)][ct->numseq(j)][ct->numseq(i)];
+      std::cout <<"ct->numseq(jp):" << ct->numseq(jp) << " ct->numseq(ip)"<< ct->numseq(ip)<< " ct->numseq(jp+1)" << ct->numseq(jp+1) <<
+	" ct->numseq(ip-1)" << ct->numseq(ip-1) << " ct->numseq(i+1)" << ct->numseq(i+1)
+		<< " ct->numseq(j)" << ct->numseq(j) << " ct->numseq(i):"<<ct->numseq(i)<< "\n";
+      std::cout << "2x1 internal loop energy = "<< energy <<"\n";
+    }
+  /*
+    else if (size==2) //a single mismatch
+      //energy = data->stack[ct->numseq[i]][ct->numseq[j]]
+      //	[ct->numseq[i+1]][ct->numseq[j-1]] +
+      //	data->stack[ct->numseq[jp]][ct->numseq[ip]]
+      //	[ct->numseq[jp+1]][ct->numseq[ip-1]];
+      energy = data->iloop11[ct->numseq[i]][ct->numseq[i+1]][ct->numseq[ip]]
+	[ct->numseq[j]][ct->numseq[j-1]][ct->numseq[jp]];
+    else if ((size1==1||size2==1)&&data->gail) { //this loop is lopsided
+      //note, we treat this case as if we had a loop composed of all As
+      //if and only if the gail rule is set to 1 in miscloop.dat
+      energy = data->tstki[ct->numseq[i]][ct->numseq[j]][1][1] +
+	data->tstki[ct->numseq[jp]][ct->numseq[ip]][1][1] +
+	data->inter[size] + data->eparam[3] +
+	min(data->maxpen, (lopsid*
+			  data->poppen[min(2, min(size1, size2))]));
+    }
+    ///else if (size2==1) { //this loop is lopsided - one side has a terminal
+    //mismatch and a dangle - the other side just a terminal mismatch
+
+    //energy = data->stack[ct->numseq[i]][ct->numseq[j]]
+    //[ct->numseq[i+1]][ct->numseq[j-1]] +
+    //data->dangle[ct->numseq[jp]][ct->numseq[ip]]
+    //[ct->numseq[ip-1]][2]+penalty(ip, jp, ct, data);
+    //energy = min(energy, data->stack[ct->numseq[jp]][ct->numseq[ip]]
+    //[ct->numseq[jp+1]][ct->numseq[ip-1]]+data->dangle[ct->numseq[i]]
+    //[ct->numseq[j]][ct->numseq[i+1]][1])+penalty(i, j, ct, data);
+    //energy = energy + data->inter[size] + data->eparam[3] +
+    //min(data->maxpen, (lopsid*
+    //data->poppen[min(2, min(size1, size2))]));
+
+    //} 
+    else {
+      //debug:
+      //if (i==54&&j==96&&ip==57&&jp==89)
+      //{
+      //	data->poppen[1] = data->poppen[2];
+      //}
+
+
+      energy = data->tstki[ct->numseq[i]][ct->numseq[j]][ct->numseq[i+1]][ct->numseq[j-1]] +
+	data->tstki[ct->numseq[jp]][ct->numseq[ip]][ct->numseq[jp+1]][ct->numseq[ip-1]] +
+	data->inter[size] + data->eparam[3] +
+	min(data->maxpen, (lopsid*data->poppen[min(2, min(size1, size2))]));
+    }
+*/
+  }
+
+  /////
+  //      cout << "erg2: "<< energy<<"\n";
+  //            cout << "i: " <<i<<"\n";
+  //      cout << "j: " <<j<<"\n";
+  //      cout << "ip: "<<ip<<"\n";
+  //      cout << "jp: "<<jp<<"\n";
+  return energy;
+}
+
+
 
 
 /**
@@ -607,16 +840,7 @@ int Datatable::erg3(int i, int j, RNAStructure *ct, int dbl)
   if (size>30) {
     //cout << "erg3:  i = "<<i<<"   j = "<<j<<"   "<<log(double ((size)/30.0))<<"\n";
     loginc = static_cast<int>(prelog_*log(static_cast<double>(size)/30.0));
-    /*
-    std::cout << "\nct->numseq(" << i << ")=" << ct->numseq(i) << " for i=" << i << ":" << ct->nucleotide_at(i) << std::endl;
-    std::cout << "ct->numseq(" << j << ")=" << ct->numseq(j) << " for j=" << j << ":" << ct->nucleotide_at(j) << std::endl;
-    std::cout << "ct->numseq(" << i+1 << ")=" << ct->numseq(i+1) << " for i+1=" << i+1 << ":" << ct->nucleotide_at(i+1) << std::endl;
-    std::cout << "ct->numseq(" << j-1 << ")=" << ct->numseq(j-1) << " for j-1=" << j-1 << ":" << ct->nucleotide_at(j-1) << std::endl;
-    std::cout << "tstkh_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)]=" << tstkh_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)] << std::endl;
-    std::cout << "hairpin_[30]=" << hairpin_[30] << std::endl;
-    std::cout << "prelog_="<<prelog_ << std::endl;
-    std::cout << "loginc=" << loginc << std::endl;
-    */
+   
     energy = tstkh_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)]
       + hairpin_[30]+loginc+eparam_[4];
   }
@@ -650,50 +874,77 @@ int Datatable::erg3(int i, int j, RNAStructure *ct, int dbl)
     energy = tstkh_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)];
     energy = hairpin_[size] + eparam_[4] + tlink +penalty(i, j, ct);
   }
- /*
-  else {
-    energy = data->tstkh[ct->numseq[i]][ct->numseq[j]]
-      [ct->numseq[i+1]][ct->numseq[j-1]]
-      + data->hairpin[size] + data->eparam[4];
+ 
+  else { /** loop that is longer than 4 nucleotides 
+	     but less than 30 nucleotides in length*/
+    energy = tstkh_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)]
+      + hairpin_[size] + eparam_[4];
+   
+    /* std::cout << "\nct->numseq(" << i << ")=" << ct->numseq(i) << " for i=" << i << ":" << ct->nucleotide_at(i) << std::endl;
+    std::cout << "ct->numseq(" << j << ")=" << ct->numseq(j) << " for j=" << j << ":" << ct->nucleotide_at(j) << std::endl;
+    std::cout << "ct->numseq(" << i+1 << ")=" << ct->numseq(i+1) << " for i+1=" << i+1 << ":" << ct->nucleotide_at(i+1) << std::endl;
+    std::cout << "ct->numseq(" << j-1 << ")=" << ct->numseq(j-1) << " for j-1=" << j-1 << ":" << ct->nucleotide_at(j-1) << std::endl;
+    std::cout << "tstkh_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)]=" << tstkh_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)] << std::endl;
+    std::cout << "hairpin_[soze="<<size<<"]=" << hairpin_[size] << std::endl;
+    std::cout << "prelog_="<<prelog_ << std::endl;
+    std::cout << "loginc=" << loginc << std::endl;
+    */
   }
+
   /////
-  //      cout << "erg3: "<< energy<<"\n";
-  //            cout << "i: " <<i<<"\n";
-  //      cout << "j: " <<j<<"\n";
-
-
+  //      std::cout << "erg3: "<< energy<<"\n" << "i: " <<i<<"\n"<< "j: " <<j<<"\n";
 
   //check for GU closeure preceded by GG
-  if (ct->numseq[i]==3&&ct->numseq[j]==4) {
-    if ((i>2&&i<ct->numofbases)||(i>ct->numofbases+2))
-      if (ct->numseq[i-1]==3&&ct->numseq[i-2]==3) {
-
-	energy = energy + data->gubonus;
+  /*
+   * special hairpin loop rules derived from experiment. A
+   * hairpin loop closed by r_i and r_j (i < j) called a \GGG" loop 
+   * if r_i−2 = r_i−1 = ri = G and r_j = U. Such a loop receives
+   * a free energy bonus that is stored in the miscloop.dg or 
+   miscloop.TC file, which contains a variety of miscellaneous,
+   or extra free energy parameters.
+  */
+  if (ct->numseq(i)==3&&ct->numseq(j)==4) { /* if: i is G and j is U */
+    if (( i>2 && i<numbases) || ( i>numbases+2 ))
+      if (ct->numseq(i-1)==3 && ct->numseq(i-2)==3) { /* if: two preceding bases are G */
+	energy = energy + gubonus_;
 	//if (ct->numseq[i+1]==4&&ct->numseq[j-1]==4)
 	//	energy = energy - data->uubonus;
 	//if (ct->numseq[i+1]==3&&ct->numseq[j-1]==1)
 	//	energy = energy - data->uubonus;
-
-
       }
   }
-
-  //check for a poly-c loop
+  /* Another special case is the \poly-C" hairpin loop, where all the single stranded
+   * bases are C. If the loop has size 3, it is given a free energy penalty of c3. 
+   * Otherwise, the penalty is c2 + c1*ls. The
+   * constants c1; c2 and c3 are all stored in the miscloop file.
+   */
   tlink = 1;
   for (k=1; (k<=size)&&(tlink==1); k++) {
-    if (ct->numseq[i+k] != 2) tlink = 0;
+    if (ct->numseq(i+k) != 2) tlink = 0;
   }
   if (tlink==1) {  //this is a poly c loop so penalize
-    if (size==3) energy = energy + data->c3;
-    else energy = energy + data->cint + size*data->cslope;
+    if (size==3) energy = energy + c3_;
+    else energy = energy + cint_ + size*cslope_;
   }
-
-  */
   return energy;
 }
 
 
 
+int Datatable::erg4(int i, int j, int ip, int jp, RNAStructure *ct, bool lfce) const
+{
+  int energy;
+  //dangling base
+  // jp = 1 => 3' dangle
+  // jp = 2 => 5' dangle
+
+  if (lfce) return s_infinity; //stacked nuc should be double stranded
+
+  if (ip==5) return 0; //dangling nuc is an intermolecular linker
+
+  energy = dangle_[ct->numseq(i)][ct->numseq(j)][ct->numseq(ip)][jp];
+  return energy;
+}
 
 
 /**

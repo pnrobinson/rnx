@@ -11,7 +11,7 @@
 #include <sstream>
 #include <stdlib.h>     /* atof */
 #include <math.h>       /* floor */
-
+#include <cerrno>
 
 
 RNAStructure::RNAStructure(const std::string &path) {
@@ -71,7 +71,7 @@ RNAStructure::RNAStructure(const std::string &path) {
  * @param path Path to the ct file.
  * @param rnalist Vector that will hold all of the structures in the current CT file we are parsing.
  */
-int RNAStructure::createFromCTFile(const char * path) {
+int RNAStructure::createFromCTFileOLD(const char * path) {
   int count, i, j;
   int linelength = 20;
   char base[2]; // base[0] will be one or ACGU, and base[1]='\0'
@@ -87,14 +87,23 @@ int RNAStructure::createFromCTFile(const char * path) {
 	      << std::endl;
     exit(1);
   }
-  // allocate memory
-  //allocate(count);
-  // Rest the file
+  // Reset the file
   in.close();
   in.open(path);
   for (numofstructures_ = 1; numofstructures_<=s_maxstructures;
        numofstructures_++) {
     header.clear();
+    if (in.eof())
+      break;
+    /*std::string line;
+    while (getline(in,line)) {
+      if (!line.empty()) {
+	header=line;
+	break;
+      }
+      }*/
+    std::cout << "in createFrom CTFIle numofstructures_ = " << numofstructures_ << std::endl;
+ 
     if (numofstructures_==s_maxstructures) {
       std::cerr << "[ERROR] Number of structures in CT file \""<< path << "\" exceeds maximum allowed.\n";
       exit(1);
@@ -103,18 +112,134 @@ int RNAStructure::createFromCTFile(const char * path) {
     strcpy(line, "");
     getline (in,header); // read one line into the header
     /* The following avoids errors from empty last line in the file following a complete structure. */
+    if (header.empty()) { /** This could be an empty line at the end of the file.
+			      Actually, there should be no empty line between individual structures in 
+			      a CT file. */
+      while ( getline(in,header) ) {
+	if (! header.empty() )
+	  break; /* we have found a header and can continue */
+      }
+      /** If we get here, then we did not find a valid header line and the file is EOF */
+      numofstructures_--;
+      return 1;
+    }
+
+
+    /* 
     while (header.empty()) {  // we could be at end of file. Keep reading until we hit end or a valid line
-      if (in.eof()) {
-	numofstructures_--;
-	return 1;
+      if (in.eof()||in.bad()) {
+
       } else {
 	getline (in,header);
+	std::cout << "ELSE header=" << header << std::endl;
       }
-    }
+      std::cout << "in createFrom CTFIle header = \"" << header<<"\"" << std::endl;
+      bool e = header.empty();
+      std::cout << "empty=" << e << std::endl;
+      std::cout << "tellg=" << in.tellg() << std::endl;
+      std::cout << " eof = " << in.eof() << " and good=" << in.good() << std::endl;
+      std::perror("????");
+      //exit(1);
+      }*/
     // Remove whitespaces from header if necessary
     size_t first = header.find_first_not_of(' ');
     size_t last = header.find_last_not_of(' ');
     header = header.substr(first, (last-first+1));
+    if (in.eof()) {
+      numofstructures_--;
+      return 1;
+    }
+    ctlabel_[numofstructures_] = header;
+    std::cout << "DOWN" << std::endl;
+    // The following code gets the structural information.
+    for (count=1; count<= numofbases_; count++)	{
+      in >> temp; //ignore base number in ctfile
+      in >> base; //read the base
+      strcpy(base+1, "\0");
+      nucs_[count]=base[0];
+      tonum(base, count); //convert base to numeric
+      if (numseq_[count]==5) {  /* 5 is a flag for intermolecular interactions, see erg3 */
+	intermolecular_ = true;
+	inter_[j] = count; /* the index of the jth base with intermolecular interactions. */
+	j++;
+      }
+      in >> temp; //ignore numbering
+      in >> temp; //ignore numbering
+      in >> basepr_[numofstructures_][count]; //read base pairing info
+      in >> hnumber_[count]; //read historical numbering
+    }
+    // When we get here, we have read in all of the lines for each base in the current structure.
+  }
+  numofstructures_--;
+  return 1;
+}
+
+
+int RNAStructure::createFromCTFile(const char * path) {
+  int count, i, j;
+  int linelength = 20;
+  char base[2]; // base[0] will be one or ACGU, and base[1]='\0'
+  char line[linelength], temp[50];
+  std::string header;
+  std::string lin;
+  std::ifstream in;
+  numofbases_=-1; /* flag that numbases is not initialised */
+  in.open(path);
+  if (!in.is_open())
+    perror("error while opening CT file");
+  /*
+  in >> count; // this is the number of residues in the sequence. 
+  j = 0;
+
+  if (count == -100) { //this is a CCT formatted file:
+    std::cerr << "[ERROR] Attempting to read a CCT-formated file \"" << path << "\", which is not supported."
+	      << std::endl;
+    exit(1);
+  }
+  // Reset the file
+  in.close();
+  in.open(path);
+  */
+  std::cout << "FILE: " << path << std::endl;
+  for (numofstructures_ = 1; numofstructures_<=s_maxstructures;numofstructures_++) {
+    if (numofstructures_==s_maxstructures) {
+      std::cerr << "[ERROR] Number of structures in CT file \""<< path << "\" exceeds maximum allowed.\n";
+      exit(1);
+    }
+    // The first line should also be the header. Format: 
+    // 99	dG = -31.70 [Initially -31.70] AAEU02002163 1/2268-2170
+    // alternative format: 
+    // 76   ENERGY = 0.1  RA7680
+    if (getline(in,header)) {
+      /** Some CT files have an empty last line. This is probably not standard-conform, 
+       * but if we see this we assume that the data is over and we stop trying to input
+       * more data.
+       */
+      if (header.empty() || header.length()==0) {
+	std::cerr << "[WARNING] Empty header line (or last empty line) in CT file: \""
+		  << header << "\" in file: "
+		  << path << "\"\n";
+	goto bailout;
+      }
+      const std::string delims(" \t"); /* space or tab */
+      size_t first_space = header.find_first_of(delims);
+      std::string num = header.substr(0,first_space );
+      int n = atoi(num.c_str());
+      if (numofbases_<0)
+	numofbases_=n;
+      else if (numofbases_ != n) {
+	std::cerr << "[ERROR] Malformed CT file: Divergent number of bases (n=" << n
+		  <<") but we previously found numofbases_="<<numofbases_ << std::endl;
+	exit(1); /* This is a major error that means the input file is corrupt. Do not try to recover. */
+      }
+      size_t rest = header.find_first_not_of(delims,first_space+1);
+      size_t last = header.find_last_not_of(delims);
+      header = header.substr(rest, (last-rest+1));
+    } else {
+      perror("Could not process header line of CT file");
+      break;
+    }
+    /* when we get here, we are finished with the header */
     if (in.eof()) {
       numofstructures_--;
       return 1;
@@ -137,7 +262,16 @@ int RNAStructure::createFromCTFile(const char * path) {
       in >> basepr_[numofstructures_][count]; //read base pairing info
       in >> hnumber_[count]; //read historical numbering
     }
+    /* when we get here,  we have read in all of the lines for each base in the current structure. */
+    char c = in.peek();  // peek character
+    if ( c == EOF ) {
+      goto bailout;
+    } else if (c==10) { /* char value of 10 means new line. We need to remove this character
+			   in order to get the next call to getline to work correctly! */
+      in.get(c);
+    }
   }
+ bailout:
   numofstructures_--;
   return 1;
 }
@@ -255,7 +389,7 @@ bool RNAStructure::intermolecular() const {
 /**
  * Note that we use the information in the basepr_ array to create
  * the dot-paren representation. basepr_[i][j] = base to which the jth base is paired in the ith structure.
- * Note that basepr_ uses one-based numbering. If basepr_[i][j]>j, then we are opening a base pair to
+ * Note that basepr_ uses one-based numbering. If basepr_[i][j]>j, then we are openng a base pair to
  * a base that comes later in the sequence, thus, we write '('. If basepr_[i][j]==0, there is no base
  * pair, and we write nothing. If basepr_[i][j]<j, then we are closing a base pair that was opened before,
  * and we write ')'.
