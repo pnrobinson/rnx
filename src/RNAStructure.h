@@ -90,7 +90,6 @@ class RNAStructure {
 
  public:
   int createFromCTFile(const char * path);
-  int createFromCTFileOLD(const char * path);
   RNAStructure(const std::string &path);
   ~RNAStructure();
   int get_number_of_bases() const;

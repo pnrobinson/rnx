@@ -150,14 +150,12 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 	  goto subroutine;
 	}
 	else if (sum==1) { /*bulge/internal loop*/
-	  std::cout << "§§§§§sum==1, energy[count]= "<< energy[count] << std::endl;
 	  energy[count] = energy[count] +
 	    erg2(i, j, ip, jp, ct, fce[i][ip-i], fce[jp][j-jp]);
 	  i = ip;
 	  j = jp;
-	  std::cout << "sum==1, energy[count]= "<< energy[count] << std::endl;
-	}	/*
-		  else { //multi-branch loop
+	}
+	else { /*multi-branch loop*/
 	  sum = sum + 1; //total helixes = sum + 1
 	  //initialize array helix and array coax
 	  helix = new int *[sum+1];
@@ -173,39 +171,37 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 	  sum1 = 0;
 	  for (k=1; k<sum; k++) {
 	    ip = helix[k-1][0]+1;
-	    while (ct->basepr[count][ip]==0) ip++;
+	    while (basepr[count][ip]==0) ip++;
 	    if (fce[helix[k-1][0]][ip-helix[k-1][0]]==5) inter = true;
 	    //add the terminal AU penalty if necessary
-	    ct->energy[count] = ct->energy[count] +
-	      penalty(ip, ct->basepr[count][ip], ct, data);
+	    energy[count] = energy[count] + penalty(ip, basepr[count][ip], ct);
 	    helix[k][1] = ip;
-	    helix[k][0] = ct->basepr[count][ip];
-	    push (&stack, ip, ct->basepr[count][ip], 1, 0);
+	    helix[k][0] = basepr[count][ip];
+	    stack.push(ip, basepr[count][ip], 1, 0);
 	    sum1 = sum1+(ip - helix[k-1][0]-1);
 	  }
 	  helix[sum][0] = helix[0][0];
 	  helix[sum][1] = helix[0][1];
 	  sum1 = sum1 + helix[sum][1]-helix[sum-1][0]-1;
 	  if (inter) {//intermolecular interaction
-	    ct->energy[count] = ct->energy[count]+data->init;
+	    energy[count] = energy[count]+init_;
 	    //give the initiation penalty
 	  }
 	  else {//not an intermolecular interaction, treat like a normal
             	//	multibranch loop:
-
+	    
             	//give the multibranch loop bonus:
-	    ct->energy[count] = ct->energy[count] + data->efn2a;
-
+	    energy[count] = energy[count] + efn2a_;
+	    
 	    //give the energy for each entering helix
-	    ct->energy[count] = ct->energy[count] + sum*data->efn2c;
-
-	    if (sum1<=6) {ct->energy[count]=ct->energy[count] +
-			    sum1*(data->efn2b);
+	    energy[count] = energy[count] + sum*efn2c_;
+	    
+	    if (sum1<=6) {
+	      energy[count]=energy[count] +sum1*efn2b_;
 	    }
 	    else {
 	      //June 10, 2008. M. Zuker corrects bug. 11. --> 110. !
-	      ct->energy[count]=ct->energy[count] +
-		6*(data->efn2b) + int(110.*log(double(((sum1)/6.))) + 0.5);
+	      energy[count]=energy[count] +6*efn2b_ + int(110.*log(double(((sum1)/6.))) + 0.5);
 	    }
 	  }
 	  //Now calculate the energy of stacking:
@@ -220,10 +216,10 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 		  //use tstackm numbers
 		  //n5 = ct->numseq[helix[ip][0]+1];
 		  //n3 = ct->numseq[helix[ip][1]-1];
-		  coax[ip][ip] = data->tstkm[ct->numseq[helix[ip][0]]]
-		    [ct->numseq[helix[ip][1]]]
-		    [ct->numseq[helix[ip][0]+1]]
-		    [ct->numseq[helix[ip][1]-1]];
+		  coax[ip][ip] = tstkm_[ct->numseq(helix[ip][0])]
+		    [ct->numseq(helix[ip][1])]
+		    [ct->numseq(helix[ip][0]+1)]
+		    [ct->numseq(helix[ip][1]-1)];
 
 		}
 		else {//do not use tstackm numbers, use individual terminal
@@ -231,25 +227,25 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 		  if ((helix[ip+1][1] - helix[ip][0])>1) {
 		    coax[ip][ip] = 
 		      min(0, erg4(helix[ip][0], helix[ip][1],
-				  helix[ip][0]+1, 1, ct, data, false));
+				  helix[ip][0]+1, 1, ct, false));
 		  }
 		  if (ip==0) {
 		    if ((helix[0][1]-helix[sum-1][0])>1) {
 		      coax[ip][ip] = coax[ip][ip] + 
 			min(0,erg4(helix[ip][0], helix[ip][1], helix[ip][1]-1,
-				   2, ct, data, false));
+				   2, ct, false));
 		    }
 		  } else {
 		    if ((helix[ip][1]-helix[ip-1][0])>1) {
 		      coax[ip][ip] = coax[ip][ip] + 
 			min(0,erg4(helix[ip][0], helix[ip][1], helix[ip][1]-1,
-				   2, ct, data, false));
+				   2, ct, false));
 		    }
 		  }
 		}
 	      }
 	      coax[sum][sum] = coax[0][0];
-	    }
+	    }/*
 	    else if (k==1) {//now consider whether coaxial stacking is
 	      //more favorable than just stacked bases
 	      for (ip=0; ip<sum; ip++) {
@@ -330,7 +326,7 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 		  coax[ip][ip+1] = coax[ip][ip] + coax[ip+1][ip+1];
 		}
 	      }
-	    }
+	      }
 	    else if (k>1&&k<sum) {
 	      for (i=0; (i+k)<=sum; i++) {
 		coax[i][i+k] = coax[i][i]+coax[i+1][i+k];
@@ -343,23 +339,23 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 	    else if (k==sum) {
 	      ct->energy[count]=ct->energy[count] + 
 		min(coax[0][sum-1],coax[1][sum]);
-	    }
+	    }*/
 	  }
 	  for (k=0; k<=sum; k++) delete[] helix[k];
 	  delete[] helix;
 	  for (k=0; k<=sum; k++) delete[] coax[k];
 	  delete[] coax;
 	  goto subroutine;
-	}
+	} /* matches  else: multi-branch loop */
       }
       //this is the exterior loop: , i = 1
 
       //Find the number of helixes exiting the loop, store this in sum:
       sum = 0;
-      while (i<ct->numofbases) { 	
-	if (ct->basepr[count][i]!=0) {
+      while (i<numbases) { 	
+	if (basepr[count][i]!=0) {
 	  sum++;
-	  i = ct->basepr[count][i];
+	  i = basepr[count][i];
 	}
 	i++;
       }
@@ -376,14 +372,14 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
       //	also place these helixes onto the stack
       ip = 1;
       for (k=0; k<sum; k++) {
-	while (ct->basepr[count][ip]==0) ip++;
+	while (basepr[count][ip]==0) ip++;
 	//add terminal au penalty if necessary
-	ct->energy[count]=ct->energy[count]+
-	  penalty(ip, ct->basepr[count][ip], ct, data);
+	energy[count]=energy[count]+
+	  penalty(ip, basepr[count][ip], ct);
 	helix[k][1] = ip;
-	helix[k][0] = ct->basepr[count][ip];
-	push (&stack, ip, ct->basepr[count][ip], 1, 0);
-	ip = ct->basepr[count][ip]+1;
+	helix[k][0] = basepr[count][ip];
+	stack.push(ip, basepr[count][ip], 1, 0);
+	ip = basepr[count][ip]+1;
       }
 
       //Now calculate the energy of stacking:
@@ -397,29 +393,29 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 		//try 3' dangle
 		coax[ip][ip] = 
 		  min(0, erg4(helix[ip][0], helix[ip][1], helix[ip][0]+1, 1, 
-			      ct, data, false));
+			      ct, false));
 	      }
 	    }
 	    else { //at 3' end of structure
-	      if ((ct->numofbases - helix[ip][0])>=1) {
+	      if ((numbases - helix[ip][0])>=1) {
 		//try 3' dangle
 		coax[ip][ip] = 
 		  min(0, erg4(helix[ip][0], helix[ip][1], helix[ip][0]+1, 1, 
-			      ct, data, false));
+			      ct, false));
 	      }
 	    }
 	    if (ip==0) {
 	      if ((helix[0][1])>1) {
 		coax[ip][ip] = coax[ip][ip] + 
 		  min(0, erg4(helix[ip][0], helix[ip][1],helix[ip][1]-1, 2, 
-			      ct, data, false));
+			      ct, false));
 	      }
 	    }
 	    else {
 	      if ((helix[ip][1]-helix[ip-1][0])>=1) {
 		coax[ip][ip] = coax[ip][ip] + 
 		  min(0, erg4(helix[ip][0], helix[ip][1],helix[ip][1]-1, 2, 
-			      ct, data, false));
+			      ct, false));
 	      }
 	    }
 	  }
@@ -431,10 +427,10 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 	    if ((helix[ip+1][1] - helix[ip][0])==1) {
 	      //flush stacking:
 	      coax[ip][ip+1] = min((coax[ip][ip] + coax[ip+1][ip+1]),
-				   data->coax[ct->numseq[helix[ip][1]]]
-				   [ct->numseq[helix[ip][0]]]
-				   [ct->numseq[helix[ip+1][1]]]
-				   [ct->numseq[helix[ip+1][0]]]);
+				   coax_[ct->numseq(helix[ip][1])]
+				   [ct->numseq(helix[ip][0])]
+				   [ct->numseq(helix[ip+1][1])]
+				   [ct->numseq(helix[ip+1][0])] );
 	    }
 	    else if (((helix[ip+1][1] - helix[ip][0])==2)) {
 	      //possible intervening mismatch:
@@ -443,14 +439,14 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 		if ((helix[ip][1] - helix[ip-1][0])>1) {
 		  coax[ip][ip+1] = 
 		    min(coax[ip][ip+1],
-			data->tstackcoax[ct->numseq[helix[ip][0]]]
-			[ct->numseq[helix[ip][1]]]
-			[ct->numseq[helix[ip][0]+1]]
-			[ct->numseq[helix[ip][1]-1]]+
-			data->coaxstack[ct->numseq[helix[ip][0]+1]]
-			[ct->numseq[helix[ip][1]-1]]
-			[ct->numseq[helix[ip+1][1]]]
-			[ct->numseq[helix[ip+1][0]]]);
+			tstackcoax_[ct->numseq(helix[ip][0])]
+			[ct->numseq(helix[ip][1])]
+			[ct->numseq(helix[ip][0]+1)]
+			[ct->numseq(helix[ip][1]-1)] +
+			coaxstack_[ct->numseq(helix[ip][0]+1)]
+			[ct->numseq(helix[ip][1]-1)]
+			[ct->numseq(helix[ip+1][1])]
+			[ct->numseq(helix[ip+1][0])]);
 		}
 	      }
 	      else {
@@ -458,17 +454,17 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 		if ((helix[0][1])>1) {
 		  coax[ip][ip+1] = 
 		    min(coax[ip][ip+1],
-			data->tstackcoax[ct->numseq[helix[ip][1]]]
-			[ct->numseq[helix[ip][0]]]
-			[ct->numseq[helix[ip][0]+1]]
-			[ct->numseq[helix[ip][1]-1]] +
-			data->coaxstack[ct->numseq[helix[ip][0]+1]]
-			[ct->numseq[helix[ip][1]-1]]
-			[ct->numseq[helix[ip+1][1]]]
-			[ct->numseq[helix[ip+1][0]]]);
+			tstackcoax_[ct->numseq(helix[ip][1])]
+			[ct->numseq(helix[ip][0])]
+			[ct->numseq(helix[ip][0]+1)]
+			[ct->numseq(helix[ip][1]-1)] +
+			coaxstack_[ct->numseq(helix[ip][0]+1)]
+			[ct->numseq(helix[ip][1]-1)]
+			[ct->numseq(helix[ip+1][1])]
+			[ct->numseq(helix[ip+1][0])]);
 		}
 	      }
-	      
+	      /*
 	      if (ip!=(sum-2)) {
 		if ((helix[ip+2][1]-helix[ip+1][0])>1) {
 		  coax[ip][ip+1] = 
@@ -497,7 +493,7 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 			[ct->numseq[helix[ip][0]+1]]
 			[ct->numseq[helix[ip+1][0]+1]]);
 		}
-	      }
+		}*/
 	    }
 	    else {//no possible stacks
 	      coax[ip][ip+1] = coax[ip][ip] + coax[ip+1][ip+1];
@@ -513,26 +509,25 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 	  }
 	}
 	if (k==(sum-1)) {
-	  ct->energy[count] = ct->energy[count] + coax[0][sum-1];
+	  energy[count] = energy[count] + coax[0][sum-1];
 	}
       }
       for (k=0; k<sum; k++) delete[] helix[k];
       delete[] helix;
       for (k=0; k<sum; k++) delete[] coax[k];
       delete[] coax;
+      // NEED TO TRANSER energy BACK TO ct
       goto subroutine;
     }
   }
-	*/
+
 	/*  xxx
   for (i=0; i<=ct->numofbases; i++)
     delete[] fce[i];
   delete[] fce;
   return;
  */
-      }
-     }
-  }
+     
 }
 
 
@@ -728,57 +723,58 @@ int Datatable::erg2(int i, int j, int ip, int jp, RNAStructure *ct, int a, int b
    
     else if ((size1==2)&&(size2==1)) {//1x2 internal loop
       energy = iloop21_[ct->numseq(jp)][ct->numseq(ip)][ct->numseq(jp+1)][ct->numseq(ip-1)][ct->numseq(i+1)][ct->numseq(j)][ct->numseq(i)];
+      /*
       std::cout <<"ct->numseq(jp):" << ct->numseq(jp) << " ct->numseq(ip)"<< ct->numseq(ip)<< " ct->numseq(jp+1)" << ct->numseq(jp+1) <<
 	" ct->numseq(ip-1)" << ct->numseq(ip-1) << " ct->numseq(i+1)" << ct->numseq(i+1)
 		<< " ct->numseq(j)" << ct->numseq(j) << " ct->numseq(i):"<<ct->numseq(i)<< "\n";
       std::cout << "2x1 internal loop energy = "<< energy <<"\n";
+      std::cout << "index=" << jp << "/" << ip << "/" << (jp+1)<< "/" << (ip-1) << "/" <<(i+1)<< "/" <<j<< "/" <<i<<"\n";
+      std::cout << "index=" << ct->numseq(jp) << "/" <<ct->numseq( ip) << "/" << ct->numseq(jp+1)<< "/" << ct->numseq(ip-1) << "/" <<ct->numseq(i+1)<< "/" <<ct->numseq(j)<< "/" <<ct->numseq(i)<<"\n";
+     
+      std::cout << "a=2,b=1\n";
+      int a=4; int b=1;int c = 2;
+      int my_i=2;
+      int my_j=3;
+      int my_ip=1;
+      int my_jp=4;
+       for (int ii=1;ii<5;++ii)
+	for (int jj=1;jj<5;jj++) {
+	  std::cout << "i,j: ("<<ii<<","<<jj<<"): " <<  
+	    iloop21_[my_jp][my_ip][ct->numseq(ii)][ct->numseq(ip-1)][ct->numseq(jj)][my_j][my_i]
+	  //iloop21_[ii][jj][ct->numseq(jp+1)][ct->numseq(j)][ct->numseq(i)]
+		    << "\n";
+	}
+       std::cout << "i=" << my_i << ", j=" << my_j << ", ip="<<my_ip<<", jp=" << my_jp <<"\n";
+      */
+      
+      
     }
-  /*
+ 
     else if (size==2) //a single mismatch
-      //energy = data->stack[ct->numseq[i]][ct->numseq[j]]
-      //	[ct->numseq[i+1]][ct->numseq[j-1]] +
-      //	data->stack[ct->numseq[jp]][ct->numseq[ip]]
-      //	[ct->numseq[jp+1]][ct->numseq[ip-1]];
-      energy = data->iloop11[ct->numseq[i]][ct->numseq[i+1]][ct->numseq[ip]]
-	[ct->numseq[j]][ct->numseq[j-1]][ct->numseq[jp]];
-    else if ((size1==1||size2==1)&&data->gail) { //this loop is lopsided
+      /*std::cout << "size==2\n";
+	std::cout << "index= i=" << i<< " /i+1=" << (i+1) << "/ ip= " << ip << " / j=" << j << " / j-1=" <<(j-1)<< " / jp=" <<jp<<"\n";
+	std::cout << "index=i" << ct->numseq(i) << " /i+1=" <<ct->numseq(i+1) << " /j=" << ct->numseq(j)<< " /j-1=" << ct->numseq(j-1) << " /jp=" <<ct->numseq(jp)
+	<<" /ip=" <<ct->numseq(ip)<< "\n";
+	std::cout << "energy=" << energy << "\n";
+      */
+      energy = iloop11_[ct->numseq(i)][ct->numseq(i+1)][ct->numseq(ip)][ct->numseq(j)][ct->numseq(j-1)][ct->numseq(jp)];
+    else if ((size1==1||size2==1)&& gail_) { //this loop is lopsided
       //note, we treat this case as if we had a loop composed of all As
       //if and only if the gail rule is set to 1 in miscloop.dat
-      energy = data->tstki[ct->numseq[i]][ct->numseq[j]][1][1] +
-	data->tstki[ct->numseq[jp]][ct->numseq[ip]][1][1] +
-	data->inter[size] + data->eparam[3] +
-	min(data->maxpen, (lopsid*
-			  data->poppen[min(2, min(size1, size2))]));
+      // recall gail_==1 for Grossly Asymmetric Interior Loop Rule being used.
+      energy = tstki_[ct->numseq(i)][ct->numseq(j)][1][1] +
+	tstki_[ct->numseq(jp)][ct->numseq(ip)][1][1] +
+	inter_[size] + eparam_[3] +
+	min(maxpen_, (lopsid*poppen_[min(2, min(size1, size2))]));
     }
-    ///else if (size2==1) { //this loop is lopsided - one side has a terminal
-    //mismatch and a dangle - the other side just a terminal mismatch
-
-    //energy = data->stack[ct->numseq[i]][ct->numseq[j]]
-    //[ct->numseq[i+1]][ct->numseq[j-1]] +
-    //data->dangle[ct->numseq[jp]][ct->numseq[ip]]
-    //[ct->numseq[ip-1]][2]+penalty(ip, jp, ct, data);
-    //energy = min(energy, data->stack[ct->numseq[jp]][ct->numseq[ip]]
-    //[ct->numseq[jp+1]][ct->numseq[ip-1]]+data->dangle[ct->numseq[i]]
-    //[ct->numseq[j]][ct->numseq[i+1]][1])+penalty(i, j, ct, data);
-    //energy = energy + data->inter[size] + data->eparam[3] +
-    //min(data->maxpen, (lopsid*
-    //data->poppen[min(2, min(size1, size2))]));
-
-    //} 
+    
     else {
-      //debug:
-      //if (i==54&&j==96&&ip==57&&jp==89)
-      //{
-      //	data->poppen[1] = data->poppen[2];
-      //}
-
-
-      energy = data->tstki[ct->numseq[i]][ct->numseq[j]][ct->numseq[i+1]][ct->numseq[j-1]] +
-	data->tstki[ct->numseq[jp]][ct->numseq[ip]][ct->numseq[jp+1]][ct->numseq[ip-1]] +
-	data->inter[size] + data->eparam[3] +
-	min(data->maxpen, (lopsid*data->poppen[min(2, min(size1, size2))]));
+      energy = tstki_[ct->numseq(i)][ct->numseq(j)][ct->numseq(i+1)][ct->numseq(j-1)] +
+	tstki_[ct->numseq(jp)][ct->numseq(ip)][ct->numseq(jp+1)][ct->numseq(ip-1)] +
+	inter_[size] + eparam_[3] +
+	min(maxpen_, (lopsid*poppen_[min(2, min(size1, size2))]));
     }
-*/
+
   }
 
   /////
@@ -894,7 +890,7 @@ int Datatable::erg3(int i, int j, RNAStructure *ct, int dbl)
   /////
   //      std::cout << "erg3: "<< energy<<"\n" << "i: " <<i<<"\n"<< "j: " <<j<<"\n";
 
-  //check for GU closeure preceded by GG
+  //check for GU closure preceded by GG
   /*
    * special hairpin loop rules derived from experiment. A
    * hairpin loop closed by r_i and r_j (i < j) called a \GGG" loop 
@@ -930,14 +926,15 @@ int Datatable::erg3(int i, int j, RNAStructure *ct, int dbl)
 }
 
 
-
+/**
+ * Energy related to dangling bases.
+ * jp = 1 => 3' dangle<br/>
+ * jp = 2 => 5' dangle
+ */
 int Datatable::erg4(int i, int j, int ip, int jp, RNAStructure *ct, bool lfce) const
 {
   int energy;
-  //dangling base
-  // jp = 1 => 3' dangle
-  // jp = 2 => 5' dangle
-
+  
   if (lfce) return s_infinity; //stacked nuc should be double stranded
 
   if (ip==5) return 0; //dangling nuc is an intermolecular linker
@@ -1631,6 +1628,35 @@ void Datatable::input_int22_dat(const std::string &path) {
 
 /**
  * Read from int21.dat,  the 2x1 internal loop data
+ * The indexing system of iloop21 is as follows:
+ * iloop21_[a][b][c][d][e][f][g] corresponds to:
+ *  iloop21_[jp][ip][jp+1][ip-1][i+1][j][i];
+ * Note that in this arrangement, "i" is the based-paired
+ * nucleotide "on the bottom right".
+ * \verbatim
+            Y 
+    ------------------ 
+(X)  A    C    G    U   
+    ------------------ 
+        5' --> 3' 
+            X 
+           U  U 
+           A  A 
+            YA 
+        3' <-- 5' 
+(A)  .    .    .    .    
+(C)  .    .    .    .    
+(G)  .    .    .    .    
+(U)  .    .    .    .    
+\endverbatim
+* Data arrangement
+ * -a index jp (pairs with ip)
+ * -b index ip (pairs with jp)
+ * -c the row within the individual 4x4 square
+ * -d the column within the individual 4x4 square
+ * -e this is the base that is "fixed" in each square.
+ * -f index j (pairs with i outside of bulge)
+ * -g index i (pairs with j outside of bulge)
  */
 void Datatable::input_int21_dat(const std::string &path){
   std::ifstream infile(path.c_str());
