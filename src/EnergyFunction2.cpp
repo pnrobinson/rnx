@@ -579,10 +579,6 @@ int Datatable::erg2(int i, int j, int ip, int jp, RNAStructure *ct, int a, int b
   */
 
   numbases = ct->get_number_of_bases();
-
-  std::cout << "\nin erg2"<<std::endl;
-  std::cout << "i="<<i<<", j="<<j<<", ip="<<ip<<", jp="<<jp<<std::endl;
-  std::cout << "numbases = " << numbases << std::endl;
   if ( ( i<=numbases && ip > numbases ) ||
        ( jp<=numbases && j> numbases) ) {
     //A loop cannot contain the ends of the sequence
@@ -723,40 +719,8 @@ int Datatable::erg2(int i, int j, int ip, int jp, RNAStructure *ct, int a, int b
    
     else if ((size1==2)&&(size2==1)) {//1x2 internal loop
       energy = iloop21_[ct->numseq(jp)][ct->numseq(ip)][ct->numseq(jp+1)][ct->numseq(ip-1)][ct->numseq(i+1)][ct->numseq(j)][ct->numseq(i)];
-      /*
-      std::cout <<"ct->numseq(jp):" << ct->numseq(jp) << " ct->numseq(ip)"<< ct->numseq(ip)<< " ct->numseq(jp+1)" << ct->numseq(jp+1) <<
-	" ct->numseq(ip-1)" << ct->numseq(ip-1) << " ct->numseq(i+1)" << ct->numseq(i+1)
-		<< " ct->numseq(j)" << ct->numseq(j) << " ct->numseq(i):"<<ct->numseq(i)<< "\n";
-      std::cout << "2x1 internal loop energy = "<< energy <<"\n";
-      std::cout << "index=" << jp << "/" << ip << "/" << (jp+1)<< "/" << (ip-1) << "/" <<(i+1)<< "/" <<j<< "/" <<i<<"\n";
-      std::cout << "index=" << ct->numseq(jp) << "/" <<ct->numseq( ip) << "/" << ct->numseq(jp+1)<< "/" << ct->numseq(ip-1) << "/" <<ct->numseq(i+1)<< "/" <<ct->numseq(j)<< "/" <<ct->numseq(i)<<"\n";
-     
-      std::cout << "a=2,b=1\n";
-      int a=4; int b=1;int c = 2;
-      int my_i=2;
-      int my_j=3;
-      int my_ip=1;
-      int my_jp=4;
-       for (int ii=1;ii<5;++ii)
-	for (int jj=1;jj<5;jj++) {
-	  std::cout << "i,j: ("<<ii<<","<<jj<<"): " <<  
-	    iloop21_[my_jp][my_ip][ct->numseq(ii)][ct->numseq(ip-1)][ct->numseq(jj)][my_j][my_i]
-	  //iloop21_[ii][jj][ct->numseq(jp+1)][ct->numseq(j)][ct->numseq(i)]
-		    << "\n";
-	}
-       std::cout << "i=" << my_i << ", j=" << my_j << ", ip="<<my_ip<<", jp=" << my_jp <<"\n";
-      */
-      
-      
     }
- 
     else if (size==2) //a single mismatch
-      /*std::cout << "size==2\n";
-	std::cout << "index= i=" << i<< " /i+1=" << (i+1) << "/ ip= " << ip << " / j=" << j << " / j-1=" <<(j-1)<< " / jp=" <<jp<<"\n";
-	std::cout << "index=i" << ct->numseq(i) << " /i+1=" <<ct->numseq(i+1) << " /j=" << ct->numseq(j)<< " /j-1=" << ct->numseq(j-1) << " /jp=" <<ct->numseq(jp)
-	<<" /ip=" <<ct->numseq(ip)<< "\n";
-	std::cout << "energy=" << energy << "\n";
-      */
       energy = iloop11_[ct->numseq(i)][ct->numseq(i+1)][ct->numseq(ip)][ct->numseq(j)][ct->numseq(j-1)][ct->numseq(jp)];
     else if ((size1==1||size2==1)&& gail_) { //this loop is lopsided
       //note, we treat this case as if we had a loop composed of all As
@@ -776,13 +740,6 @@ int Datatable::erg2(int i, int j, int ip, int jp, RNAStructure *ct, int a, int b
     }
 
   }
-
-  /////
-  //      cout << "erg2: "<< energy<<"\n";
-  //            cout << "i: " <<i<<"\n";
-  //      cout << "j: " <<j<<"\n";
-  //      cout << "ip: "<<ip<<"\n";
-  //      cout << "jp: "<<jp<<"\n";
   return energy;
 }
 
@@ -1300,11 +1257,8 @@ void Datatable::input_miscloop_dat(const std::string &path) {
   for (count=1; count<= 4; count ++){
     infile >> temp;
     poppen_[count] = static_cast<int> (atof(temp.c_str())*100.0 + .5);
-  } 										//this reads float values, converts
-  // 	them int and assigns them into
-  //		array poppen
-
-  
+  } 										
+    
   infile >> token;
   while(token != "-->")
     infile >> token;

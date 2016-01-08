@@ -733,7 +733,6 @@ TEST (iloop21_u3,EnergyFunction2) {
   const char *dir = "../dat";
   Datatable dattab(dir);
   std::string ct_file = "../testdata/u3.ct";
-  std::cout << "About to input u3\n";
   RNAStructure rnastruct(ct_file);
   int dbl = 42;
   int e2;
@@ -743,11 +742,12 @@ TEST (iloop21_u3,EnergyFunction2) {
   int j=50;
   int ip=22;
   int jp=48;
-  // The energy for the 2x1 innerloop in microrna-282
+  // The energy for the 2x1 innerloop in u3
   // see latex document for the details.
-  //dattab.efn2(&rnastruct, 1);
+  // There is an A:U pair at 19:50 (i:j) and another A:U pair at 22:48 (ip:jp)
+  dattab.efn2(&rnastruct, 1);
   e2 = dattab.erg2(i,j,ip,jp, &rnastruct, a, b);
-  int expected = 120;
+  int expected = 320;
   CHECK_INTS_EQUAL(expected,e2);
   // Now check a 1x1 innerloop
   i=107;ip=109;j=163;jp=161;
@@ -764,7 +764,6 @@ TEST (iloop4x4_u3,EnergyFunction2) {
   const char *dir = "../dat";
   Datatable dattab(dir);
   std::string ct_file = "../testdata/u3.ct";
-  std::cout << "About to input u3\n";
   RNAStructure rnastruct(ct_file);
   int dbl = 42;
   int e2;
@@ -792,6 +791,33 @@ We expected -70-70+230=90
   int expected = 90;
   CHECK_INTS_EQUAL(expected,e2);
 }
+
+
+/**
+ * Testing a larger, symmetric inner loop of u3 structure
+ */
+TEST (iloop_lopsided_u3,EnergyFunction2) {
+  const char *dir = "../dat";
+  Datatable dattab(dir);
+  std::string ct_file = "../testdata/u3.ct";
+  RNAStructure rnastruct(ct_file);
+  int dbl = 42;
+  int e2;
+  int a=42;
+  int b=42; // a and b have no meaning for the following test.
+  int i=79;
+  int j=213;
+  int ip=87;
+  int jp=210;
+  e2 = dattab.erg2(i,j,ip,jp, &rnastruct, a, b);
+  int expected = 450;
+  CHECK_INTS_EQUAL(expected,e2);
+
+
+}
+
+
+
  
 int main(){   
   TestResultStdErr result;
