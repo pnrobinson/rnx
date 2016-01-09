@@ -110,8 +110,8 @@ class RNAStructure {
 
 
 /**
- *  contains a stack of data, used by
- * functions that analyze a structure piecewise
+ * Contains a stack of data, used by
+ * functions (Such as enf2) that analyze a structure piecewise
  */
 class Structstack {
   /** The actual stack. Indices=? */

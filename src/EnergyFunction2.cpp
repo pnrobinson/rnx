@@ -59,30 +59,36 @@ void forceinterefn(int dbl, RNAStructure* ct, int **w) {
 
 
 
-/*
+/**
  * The energy calculator of Zuker
  * calculates the free energy of each structural conformation in a structure
- * structures cannot have pseudoknots
+ * structures cannot have pseudoknots. The following is a detailed description
+ * of the algorithm in this function with markers that are also shown as
+ * comments in the code.
+ * - #1) Initialize variables and arrays 
+ * - #2) -Iterate over structures (A CT file can contain multiple RNA structures)
+ * - #3) are i and j paired? A loop that calculates energy of a stack.
+ * - #4) now efn2 is past the paired region Update variables i and j  to move to a place where i and j are paired but i+1 and j-1 are not!
+ * This additionally updates the variable <i>sum</i> to have the number of base pairings between i and j above.
+ * - #5) If there is a hairpin loop (sum==0), calculate its energy.
+ * - #6 If there is a bulge/internal loop (sum==1), calculate its energy
+ * - #7) If there is a multi-branch loop, calculate its energy
+ * @param ct The RNA structure or structures derived from a CT file.
  * @param structnum indicates which structure to calculate the free energy
  * the default, 0, indicates "all" structures
  */
 void Datatable::efn2(RNAStructure *ct, int structnum){
   int i, j, k, open, null, stz, count, sum, sum1, ip = 0, jp = 0;
   
-  Structstack stack;
+  Structstack stack; //  a place to keep track of where efn2 is located in a structure
   int **coax, **helix;
   int **fce;
   int *energy;
   int numbases;
-  bool inter, flag;
+  bool inter; //  indicates whether there is an intermolecular interaction involved in a multi-branch loop
+  bool flag;
   int start, stop; // start and stop refer to the indices of the structures to be analysed.
-  //int n5, n3;
-
-  /* stack = a place to keep track of where efn2 is located in a structure
-     inter = indicates whether there is an intermolecular interaction involved 
-     in a multi-branch loop
-  */
-
+  /* #1 -- Initialize variables and arrays */
   numbases=ct->get_number_of_bases();
   int y = ct->get_number_of_structures();
   energy = new int[y+1];  // analogous to Ct->energy_, dont forget to trasfer back.
@@ -113,7 +119,7 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
     start = 1;
     stop = ct->get_number_of_structures();
   }
-  /** ITERATE OVER STRUCTURES */
+  /** #2 -Iterate over structures */
   for (count=start; count<=stop; count++){ 
     energy[count]=0;
     //push(&stack, 1, ct->numofbases, 1, 0); 
@@ -121,8 +127,8 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
     
   subroutine: //loop starts here ("goto" to speed operation)
     stack.pull( &i, &j, &open, &null, &stz); // take a substructure off stack
-     while (stz!=1){
-      while (basepr[count][i]==j) { //are i and j paired?
+    while (stz!=1){ // note stz is never used anywhere and appears superfluous. ? Delete it ??
+      while (basepr[count][i]==j) { //#3 are i and j paired?
 	while (basepr[count][i+1]==j-1) {//are i, j and i+1, j-1 stacked?
 	  energy[count]=energy[count] + erg1(i, j, i+1, j-1, ct);
 	  i++;
@@ -130,7 +136,7 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 	}
 	sum = 0;
 	k = i + 1;
-	// now efn2 is past the paired region, so define
+	// #4) now efn2 is past the paired region, so define
 	// the intervening non-paired segment between [i+2,j-1)
 	// given that we have a stack at i,j,i+1,j-1 above
 	while (k<j) {
@@ -145,17 +151,17 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 	}
 	// when we get here, i and j are paired but i+1 and j-1 are not!
 	// sum now has the number of base pairings between i and j above.
-	if (sum==0) { //hairpin loop
+	if (sum==0) { // #5) hairpin loop
 	  energy[count]=energy[count]+erg3(i,j,ct,fce[i][j-i]);
 	  goto subroutine;
 	}
-	else if (sum==1) { /*bulge/internal loop*/
+	else if (sum==1) { /* #6 If there is a bulge/internal loop */
 	  energy[count] = energy[count] +
 	    erg2(i, j, ip, jp, ct, fce[i][ip-i], fce[jp][j-jp]);
 	  i = ip;
 	  j = jp;
 	}
-	else { /*multi-branch loop*/
+	else { /* #7) multi-branch loop*/
 	  sum = sum + 1; //total helixes = sum + 1
 	  //initialize array helix and array coax
 	  helix = new int *[sum+1];
@@ -172,7 +178,8 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 	  for (k=1; k<sum; k++) {
 	    ip = helix[k-1][0]+1;
 	    while (basepr[count][ip]==0) ip++;
-	    if (fce[helix[k-1][0]][ip-helix[k-1][0]]==5) inter = true;
+	    if (fce[helix[k-1][0]][ip-helix[k-1][0]]==5)
+	      inter = true;
 	    //add the terminal AU penalty if necessary
 	    energy[count] = energy[count] + penalty(ip, basepr[count][ip], ct);
 	    helix[k][1] = ip;
@@ -211,7 +218,8 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 		coax[ip][ip] = 0;
 		flag = false;
 		if (((ip==0) && ((helix[0][1]-helix[sum-1][0])>1))||
-		    ((ip!=0)&&((helix[ip][1]-helix[ip-1][0])>1))) flag=true;
+		    ((ip!=0)&&((helix[ip][1]-helix[ip-1][0])>1)))
+		  flag=true;
 		if (((helix[ip+1][1] - helix[ip][0]) > 1)&&flag) {
 		  //use tstackm numbers
 		  //n5 = ct->numseq[helix[ip][0]+1];
