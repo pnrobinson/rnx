@@ -12,7 +12,16 @@
 #include <stdlib.h>     /* atof */
 #include <math.h>       /* floor */
 #include <cerrno>
+#include <exception>
 
+
+inline void swap(int *a, int *b) {
+  int temp;
+  temp = *a;
+  *a = *b;
+  *b = temp;
+  return;
+}
 
 RNAStructure::RNAStructure(const std::string &path) {
   int i;
@@ -305,6 +314,82 @@ std::string RNAStructure::get_dot_parens_structure(int i) const {
       s[j-1]=')';
   }
   return s;
+}
+
+void RNAStructure::set_energy( int* en, int n ) {
+  if (n>s_maxstructures) {
+    throw std::exception();//"array out of bounds exception in set_energy");
+  }
+  memcpy (energy_,en, sizeof(int)*n);
+}
+
+/**
+ * Reorder the structures in a CT file by their efn energies.
+ */
+void RNAStructure::sortstructures () {
+  register int c;
+  int cur, i;
+  std::string ctheader;
+
+  for (c = 2; c<=(numofstructures_); c++){
+
+    cur = c;
+
+    while (cur>1) {
+      if ((energy_[cur])<(energy_[cur-1])) {
+      	swap(&(energy_[cur]), &(energy_[cur-1]));
+	//also swap the ct labels:
+	ctheader = ctlabel_[cur];
+	ctlabel_[cur] =  ctlabel_[cur-1];
+	ctlabel_[cur-1] = ctheader;
+	for (i=1; i<=numofbases_; i++) {
+	  swap(&(basepr_[cur][i]),&(basepr_[cur-1][i]));
+	}
+	cur--;
+      }
+      else {
+	break;
+      }
+    }
+  }
+}
+
+
+
+
+/**
+ * outputs a ct file
+ */
+void RNAStructure::ctout (const char *ctoutfile) {
+  int count, i; //length
+  char line[2*ctheaderlength], number[2*numlen]; //base[2]
+
+  std::ofstream outfile;
+  outfile.open(ctoutfile);
+  for (count=1; count<=(numofstructures_); count++) {
+    outfile << numofbases_ << "\t";
+    if (energy_[count]!=0) {
+      outfile << "dG = ";
+      sprintf(number, "%0.2f", (double) energy_[count] / 100.0);
+      outfile <<  number << " ";
+    } else {
+      outfile << " ";
+    }
+    //strcat(line, ct->ctlabel[count]);
+    //fputs (line, ctfile);
+    outfile << ctlabel_[count] <<  std::endl;
+    for (i=1; i<numofbases_; i++) {
+      sprintf(line, "%i\t%c\t%i\t%i\t%i\t%i\n",
+	      i,nucs_[i],(i-1),(i+1),basepr_[count][i], hnumber_[i]);
+      outfile << line;
+    }
+    i = numofbases_;
+    sprintf(line, "%i\t%c\t%i\t%i\t%i\t%i\n",
+	    i, nucs_[i], (i-1), 0, basepr_[count][i], hnumber_[i]);
+    outfile << line;
+  }
+  outfile.close();
+  return;
 }
 
 

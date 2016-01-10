@@ -81,7 +81,8 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
   int i, j, k, open, null, stz, count, sum, sum1, ip = 0, jp = 0;
   
   Structstack stack; //  a place to keep track of where efn2 is located in a structure
-  int **coax, **helix;
+  int **coax; // Note this local array is to be distinguished from the class variable coax_ \todo: Refactor name!
+  int **helix;
   int **fce;
   int *energy;
   int numbases;
@@ -253,20 +254,23 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 		}
 	      }
 	      coax[sum][sum] = coax[0][0];
-	    }/*
+	    }
 	    else if (k==1) {//now consider whether coaxial stacking is
 	      //more favorable than just stacked bases
+	   
 	      for (ip=0; ip<sum; ip++) {
 		//cout << ip << "\n";
 		//see if they're close enough to stack
 		if ((helix[ip+1][1] - helix[ip][0])==1) {
 		  //flush stacking:
 		  coax[ip][ip+1] = min((coax[ip][ip] + coax[ip+1][ip+1]),
-				       data->coax[ct->numseq[helix[ip][1]]]
-				       [ct->numseq[helix[ip][0]]]
-				       [ct->numseq[helix[ip+1][1]]]
-				       [ct->numseq[helix[ip+1][0]]]);
+				       coax_[ct->numseq(helix[ip][1])]
+				       [ct->numseq(helix[ip][0])]
+				       [ct->numseq(helix[ip+1][1])]
+				       [ct->numseq(helix[ip+1][0])]);
 		}
+	     
+		
 		else if (((helix[ip+1][1] - helix[ip][0])==2)) {
 		  //possible intervening mismatch:
 		  coax[ip][ip+1] = coax[ip][ip]+coax[ip+1][ip+1];
@@ -274,59 +278,59 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 		    if ((helix[ip][1] - helix[ip-1][0])>1) {
 		      coax[ip][ip+1] = 
 			min(coax[ip][ip+1],
-			    data->tstackcoax[ct->numseq[helix[ip][0]]]
-			    [ct->numseq[helix[ip][1]]]
-			    [ct->numseq[helix[ip][0]+1]]
-			    [ct->numseq[helix[ip][1]-1]]+
-			    data->coaxstack[ct->numseq[helix[ip][0]+1]]
-			    [ct->numseq[helix[ip][1]-1]]
-			    [ct->numseq[helix[ip+1][1]]]
-			    [ct->numseq[helix[ip+1][0]]]);
+			    tstackcoax_[ct->numseq(helix[ip][0])]
+			    [ct->numseq(helix[ip][1])]
+			    [ct->numseq(helix[ip][0]+1)]
+			    [ct->numseq(helix[ip][1]-1)]+
+			    coaxstack_[ct->numseq(helix[ip][0]+1)]
+			    [ct->numseq(helix[ip][1]-1)]
+			    [ct->numseq(helix[ip+1][1])]
+			    [ct->numseq(helix[ip+1][0])]);
 		    }
-		  }
-		  else {
+		  } else {
 		    //ip==0
 		    if ((helix[0][1]-helix[sum-1][0])>1) {
 		      coax[ip][ip+1] = 
 			min(coax[ip][ip+1],
-			    data->tstackcoax[ct->numseq[helix[ip][1]]]
-			    [ct->numseq[helix[ip][0]]]
-			    [ct->numseq[helix[ip][0]+1]]
-			    [ct->numseq[helix[ip][1]-1]] +
-			    data->coaxstack[ct->numseq[helix[ip][0]+1]]
-			    [ct->numseq[helix[ip][1]-1]]
-			    [ct->numseq[helix[ip+1][1]]]
-			    [ct->numseq[helix[ip+1][0]]]);
+			    tstackcoax_[ct->numseq(helix[ip][1])]
+			    [ct->numseq(helix[ip][0])]
+			    [ct->numseq(helix[ip][0]+1)]
+			    [ct->numseq(helix[ip][1]-1)] +
+			    coaxstack_[ct->numseq(helix[ip][0]+1)]
+			    [ct->numseq(helix[ip][1]-1)]
+			    [ct->numseq(helix[ip+1][1])]
+			    [ct->numseq(helix[ip+1][0])]);
 		    }
 		  }
-		  
+	
 		  if (ip!=(sum-1)) {
 		    if ((helix[ip+2][1]-helix[ip+1][0])>1) {
 		      coax[ip][ip+1] = 
 			min(coax[ip][ip+1],
-			    data->tstackcoax[ct->numseq[helix[ip][0]+1]]
-			    [ct->numseq[helix[ip+1][0]+1]]
-			    [ct->numseq[helix[ip+1][1]]]
-			    [ct->numseq[helix[ip+1][0]]] +
-			    data->coaxstack[ct->numseq[helix[ip][0]]]
-			    [ct->numseq[helix[ip][1]]]
-			    [ct->numseq[helix[ip][0]+1]]
-			    [ct->numseq[helix[ip+1][0]+1]]);
+			    tstackcoax_[ct->numseq(helix[ip][0]+1)]
+			    [ct->numseq(helix[ip+1][0]+1)]
+			    [ct->numseq(helix[ip+1][1])]
+			    [ct->numseq(helix[ip+1][0])] +
+			    coaxstack_[ct->numseq(helix[ip][0])]
+			    [ct->numseq(helix[ip][1])]
+			    [ct->numseq(helix[ip][0]+1)]
+			    [ct->numseq(helix[ip+1][0]+1)]);
 		    }
 		  }
+	
 		  else {
 		    //ip = sum - 1
 		    if ((helix[1][1]-helix[0][0])>1) {
 		      coax[ip][ip+1] = 
 			min(coax[ip][ip+1],
-			    data->tstackcoax[ct->numseq[helix[ip][0]+1]]
-			    [ct->numseq[helix[ip+1][0]+1]]
-			    [ct->numseq[helix[ip+1][1]]]
-			    [ct->numseq[helix[ip+1][0]]] +
-			    data->coaxstack[ct->numseq[helix[ip][0]]]
-			    [ct->numseq[helix[ip][1]]]
-			    [ct->numseq[helix[ip][0]+1]]
-			    [ct->numseq[helix[ip+1][0]+1]]);
+			    tstackcoax_[ct->numseq(helix[ip][0]+1)]
+			    [ct->numseq(helix[ip+1][0]+1)]
+			    [ct->numseq(helix[ip+1][1])]
+			    [ct->numseq(helix[ip+1][0])] +
+			    coaxstack_[ct->numseq(helix[ip][0])]
+			    [ct->numseq(helix[ip][1])]
+			    [ct->numseq(helix[ip][0]+1)]
+			    [ct->numseq(helix[ip+1][0]+1)]);
 		    }
 		  }
 		}
@@ -334,7 +338,8 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 		  coax[ip][ip+1] = coax[ip][ip] + coax[ip+1][ip+1];
 		}
 	      }
-	      }
+	    }
+	 
 	    else if (k>1&&k<sum) {
 	      for (i=0; (i+k)<=sum; i++) {
 		coax[i][i+k] = coax[i][i]+coax[i+1][i+k];
@@ -345,9 +350,10 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 	      }
 	    }
 	    else if (k==sum) {
-	      ct->energy[count]=ct->energy[count] + 
+	      energy[count]=energy[count] + 
 		min(coax[0][sum-1],coax[1][sum]);
-	    }*/
+	   
+	    }
 	  }
 	  for (k=0; k<=sum; k++) delete[] helix[k];
 	  delete[] helix;
@@ -472,36 +478,36 @@ void Datatable::efn2(RNAStructure *ct, int structnum){
 			[ct->numseq(helix[ip+1][0])]);
 		}
 	      }
-	      /*
+	     
 	      if (ip!=(sum-2)) {
 		if ((helix[ip+2][1]-helix[ip+1][0])>1) {
 		  coax[ip][ip+1] = 
 		    min(coax[ip][ip+1],
-			data->tstackcoax[ct->numseq[helix[ip][0]+1]]
-			[ct->numseq[helix[ip+1][0]+1]]
-			[ct->numseq[helix[ip+1][1]]]
-			[ct->numseq[helix[ip+1][0]]] +
-			data->coaxstack[ct->numseq[helix[ip][0]]]
-			[ct->numseq[helix[ip][1]]]
-			[ct->numseq[helix[ip][0]+1]]
-			[ct->numseq[helix[ip+1][0]+1]]);
+			tstackcoax_[ct->numseq(helix[ip][0]+1)]
+			[ct->numseq(helix[ip+1][0]+1)]
+			[ct->numseq(helix[ip+1][1])]
+			[ct->numseq(helix[ip+1][0])] +
+			coaxstack_[ct->numseq(helix[ip][0])]
+			[ct->numseq(helix[ip][1])]
+			[ct->numseq(helix[ip][0]+1)]
+			[ct->numseq(helix[ip+1][0]+1)]);
 		}
 	      }
 	      else {
 		//ip = sum - 2
-		if (helix[sum-1][0]<ct->numofbases) {
+		if (helix[sum-1][0]< numbases) {
 		  coax[ip][ip+1] = 
 		    min(coax[ip][ip+1],
-			data->tstackcoax[ct->numseq[helix[ip][0]+1]]
-			[ct->numseq[helix[ip+1][0]+1]]
-			[ct->numseq[helix[ip+1][1]]]
-			[ct->numseq[helix[ip+1][0]]] +
-			data->coaxstack[ct->numseq[helix[ip][0]]]
-			[ct->numseq[helix[ip][1]]]
-			[ct->numseq[helix[ip][0]+1]]
-			[ct->numseq[helix[ip+1][0]+1]]);
+			tstackcoax_[ct->numseq(helix[ip][0]+1)]
+			[ct->numseq(helix[ip+1][0]+1)]
+			[ct->numseq(helix[ip+1][1])]
+			[ct->numseq(helix[ip+1][0])] +
+			coaxstack_[ct->numseq(helix[ip][0])]
+			[ct->numseq(helix[ip][1])]
+			[ct->numseq(helix[ip][0]+1)]
+			[ct->numseq(helix[ip+1][0]+1)]);
 		}
-		}*/
+	      }
 	    }
 	    else {//no possible stacks
 	      coax[ip][ip+1] = coax[ip][ip] + coax[ip+1][ip+1];

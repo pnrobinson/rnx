@@ -200,18 +200,20 @@
 
 #include <iostream>
 #include "optionparser.h"
+#include "Sequence.h"
+#include "EnergyFunction2.h"
+#include "RNAStructure.h"
 
-enum  optionIndex { UNKNOWN, HELP, PLUS };
+enum  optionIndex { UNKNOWN, HELP, CT };
 
 const option::Descriptor usage[] =
   {
     {UNKNOWN, 0,"" , ""    ,option::Arg::None, "USAGE: rnx [options]\n\n"
      "Options:" },
     {HELP,    0,"" , "help",option::Arg::None, "  --help  \tPrint usage and exit." },
-    {PLUS,    0,"p", "plus",option::Arg::None, "  --plus, -p  \tIncrement count." },
     {UNKNOWN, 0,"" ,  ""   ,option::Arg::None, "\nExamples:\n"
-     "  example --unknown -- --this_is_no_option\n"
-     "  example -unk --plus -ppp file1 file2\n" },
+     "  rnx CTfile\n"
+     "  rnx -unk --plus -ppp file1 file2\n" },
     {0,0,0,0,0,0}
   };
 
@@ -230,13 +232,32 @@ int main(int argc, char* argv[]) {
     option::printUsage(std::cout, usage);
     return 0;
   }
+
+  if (options[CT]) {
+    for (option::Option* opt = options[CT]; opt; opt = opt->next()) {
+      const char *fname = opt->arg;
+      std::cout << "FFF \"" << fname << "\"\n";
+    }
+    
+  }
+
   
-  std::cout << "--plus count: " <<
-    options[PLUS].count() << "\n";
+  const char * fname = "./testdata/u3.ct";
 
   for (option::Option* opt = options[UNKNOWN]; opt; opt = opt->next())
      std::cout << "Unknown option: " << opt->name << "\n";
   
   for (int i = 0; i < parse.nonOptionsCount(); ++i)
     std::cout << "Non-option #" << i << ": " << parse.nonOption(i) << "\n";
+
+
+  const char *dir = "./dat";
+  Datatable dattab(dir);
+  RNAStructure rnastruct(fname);
+
+  dattab.efn2(&rnastruct, 1);
+
+  const char *newout = "testout.ct";
+  rnastruct.ctout (newout);
+  return 0;
 }

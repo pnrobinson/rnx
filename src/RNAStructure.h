@@ -101,6 +101,9 @@ class RNAStructure {
   inline int numseq(int i) { return numseq_[i]; }
   inline int inter(int i) { return inter_[i]; }
   inline char nucleotide_at(int i) { return nucs_[i]; }
+  void set_energy( int* en, int n );
+  void sortstructures();
+  void ctout (const char *ctoutfile);
  private:
   void allocate(int size = s_maxbases);
   void allocatetem();

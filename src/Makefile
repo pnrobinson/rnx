@@ -5,7 +5,7 @@ LIBFLAGS = #lib/cppunitlite.a
 %.o : %.cpp
 	$(CC) $(CCFLAGS) -c $<
 
-objects = maintest.o unittest.o Sequence.o Nussinov.o EnergyFunction2.o RNAStructure.o
+objects = unittest.o Sequence.o Nussinov.o EnergyFunction2.o RNAStructure.o
 
 all: maintest
 
@@ -14,20 +14,20 @@ all: maintest
 cppunitlite:
 	cd lib; make all
 
-maintest: $(objects)
+maintest: $(objects) maintest.o
 	@echo "Compiling main unit test program..."
-	${CC} -o maintest $(objects) ${LIBFLAGS} 
+	${CC} -o maintest maintest.o $(objects) ${LIBFLAGS} 
 	@echo "Running unit tests..."
 	./maintest
 
 valgrind:
 	valgrind ./maintest
 
-rnx: rnx.cpp
-	${CC} $(CCFLAGAS) -o rnx $<
+rnx: rnx.cpp $(objects)
+	${CC} $(CCFLAGAS) -o rnx $(objects)    $<
 
 
 clean:
-	-rm $(objects) maintest
+	-rm $(objects) maintest maintest.o
 	-rm *~
 	-rm rnx
