@@ -1,5 +1,5 @@
 CC = g++
-CCFLAGS = -g3 -ansi -DDEBUG 
+CCFLAGS = -g3 -ansi -DDEBUG -std=c++11
 LIBFLAGS = #lib/cppunitlite.a
 
 %.o : %.cpp
@@ -24,7 +24,7 @@ valgrind:
 	valgrind ./maintest
 
 rnx: rnx.cpp $(objects)
-	${CC} $(CCFLAGAS) -o rnx $(objects)    $<
+	${CC} $(CCFLAGS) -o rnx $(objects)    $<
 
 
 clean:
