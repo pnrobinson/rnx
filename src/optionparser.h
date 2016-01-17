@@ -24,6 +24,7 @@
 #ifndef OPTIONPARSER_H_
 #define OPTIONPARSER_H_
 
+#include <vector>
 
 namespace option
 {
@@ -146,7 +147,51 @@ namespace option
   };
 
 
+  /**
+   * A single, completely parsed option.
+   */
+  class Option {
 
+  private:
+    Descriptor *desc;
+
+
+  public:
+    Option(const char * args);
+    Option (const Option &orig);
+    void operator= (const Option &orig);
+    int type ()	const {
+      return desc == 0 ? 0 : desc->type;
+    }
+ 
+
+
+  };
+
+
+
+
+  class Parser {
+    int op_count_; 
+    int nonop_count_; 
+    const char** nonop_args_; 
+    bool err_;
+    std::vector<Option> optionlist_;
+  public:
+   
+  Parser():  op_count_(0), nonop_count_(0), nonop_args_(0), err_(false) {
+    }
+
+    Parser(const Descriptor usage[], int argc, char** argv);
+    int optionsCount() { return op_count_; };
+    int nonOptionsCount() {return nonop_count_; }
+    //Returns the number of non-option arguments that remained at the end of the most recent parse() that actually encountered non-option arguments.
+    const char **nonOptions() {return nonop_args_; }
+    //Returns a pointer to an array of non-option arguments (only valid if nonOptionsCount() >0 ).
+    const char * nonOption (int i);
+    //Returns nonOptions()[i] (without checking if i is in range!).
+    bool error() { return err_; }
+  };
   
 }
 // namespace option
