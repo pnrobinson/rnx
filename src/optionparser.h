@@ -25,6 +25,9 @@
 #define OPTIONPARSER_H_
 
 #include <vector>
+#include <sstream>
+#include <string>
+
 
 namespace option
 {
@@ -40,82 +43,25 @@ namespace option
 
   struct Descriptor {
     /**
-     * @brief Index of this option's linked list in the array filled in by the parser.
-     *
-     * @par Tip:
-     * Use an enum rather than plain ints for better readability, as shown in the example
-     * at Descriptor.
-     */
-    const unsigned index;
-    
-    /**
-     * @brief Used to distinguish between options with the same @ref index.
-     * See @ref index for details.
-     *
-     * It is recommended that you use an enum rather than a plain int to make your
-     * code more readable.
-     */
-    const int type;
-    
-    /**
-     * @brief Each char in this string will be accepted as a short option character.
-     *
-     * The string must not include the minus character @c '-' or you'll get undefined
-     * behaviour.
-     *
-     * If this Descriptor should not have short option characters, use the empty
-     * string "". NULL is not permitted here!
+     * @brief  a short option character (without the leading @c - ).
      *
      * See @ref longopt for more information.
      */
-    const char* const shortopt;
+    const char shortopt;
     
     /**
      * @brief The long option name (without the leading @c -- ).
      *
      * If this Descriptor should not have a long option name, use the empty
      * string "". NULL is not permitted here!
-     *
-     * While @ref shortopt allows multiple short option characters, each
-     * Descriptor can have only a single long option name. If you have multiple
-     * long option names referring to the same option use separate Descriptors
-     * that have the same @ref index and @ref type. You may repeat
-     * short option characters in such an alias Descriptor but there's no need to.
-     *
-     * @par Dummy Descriptors:
-     * You can use dummy Descriptors with an
-     * empty string for both @ref shortopt and @ref longopt to add text to
-     * the usage that is not related to a specific option. See @ref help.
-     * The first dummy Descriptor will be used for unknown options (see below).
-     *
-     * @par Unknown Option Descriptor:
-     * The first dummy Descriptor in the list of Descriptors,
-     * whose @ref shortopt and @ref longopt are both the empty string, will be used
-     * as the Descriptor for unknown options. An unknown option is a string in
-     * the argument vector that is not a lone minus @c '-' but starts with a minus
-     * character and does not match any Descriptor's @ref shortopt or @ref longopt. @n
-     * Note that the dummy descriptor's @ref check_arg function @e will be called and
-     * its return value will be evaluated as usual. I.e. if it returns @ref ARG_ILLEGAL
-     * the parsing will be aborted with <code>Parser::error()==true</code>. @n
-     * if @c check_arg does not return @ref ARG_ILLEGAL the descriptor's
-     * @ref index @e will be used to pick the linked list into which
-     * to put the unknown option. @n
-     * If there is no dummy descriptor, unknown options will be dropped silently.
-     *
      */
     const char* const longopt;
     
     /**
-     * @brief For each option that matches @ref shortopt or @ref longopt this function
-     * will be called to check a potential argument to the option.
+     * @brief One of NONE, STRING, INTEGER, or FLOAT.
      *
-     * This function will be called even if there is no potential argument. In that case
-     * it will be passed @c NULL as @c arg parameter. Do not confuse this with the empty
-     * string.
-     *
-     * See @ref CheckArg for more information.
      */
-    const  ArgType check_arg;
+    const ArgType argtype;
     
     /**
      * @brief The usage text associated with the options in this Descriptor.
@@ -160,9 +106,9 @@ namespace option
     Option(const char * args);
     Option (const Option &orig);
     void operator= (const Option &orig);
-    int type ()	const {
-      return desc == 0 ? 0 : desc->type;
-    }
+    /*ArgType type ()	const {
+      return desc == 0 ? 0 : desc->argtype;
+      }*/
  
 
 
@@ -173,7 +119,8 @@ namespace option
 
   class Parser {
     int op_count_; 
-    int nonop_count_; 
+    int nonop_count_;
+    std::string command_string_;
     const char** nonop_args_; 
     bool err_;
     std::vector<Option> optionlist_;
@@ -182,7 +129,10 @@ namespace option
   Parser():  op_count_(0), nonop_count_(0), nonop_args_(0), err_(false) {
     }
 
-    Parser(const Descriptor usage[], int argc, char** argv);
+    Parser(const Descriptor usage[], int argc, const char** argv){
+      input_command_string(argc,argv);
+      parse_options(argc,argv);
+    }
     int optionsCount() { return op_count_; };
     int nonOptionsCount() {return nonop_count_; }
     //Returns the number of non-option arguments that remained at the end of the most recent parse() that actually encountered non-option arguments.
@@ -191,6 +141,22 @@ namespace option
     const char * nonOption (int i);
     //Returns nonOptions()[i] (without checking if i is in range!).
     bool error() { return err_; }
+    std::string get_command_string() const { return command_string_; }
+    bool hasOption(char c) const;
+    bool hasOption(const char *p) const;
+
+  private:
+    void input_command_string(int argc, const char** argv) {
+      std::stringstream os;
+      if (argc==0) { return; }
+      os << argv[0];
+      for (unsigned int i=1;i<argc;++i) {
+	os << " " << argv[i];
+      }
+      command_string_=os.str();
+    }
+    void parse_options(int argc, const char** argv) {
+    }
   };
   
 }
