@@ -41,6 +41,7 @@ TEST (optiontest1,Parser) {
    const option::Descriptor usage[] = {
      { 'c', "enable-foo",  option::ArgType::NONE, 0 },
      {'d', "dddd", option::ArgType::NONE, 0 },
+     {0,0, 0, 0 },
    };
    //program call: "program -c foo --ddd bar";
    const char* argv[] = {"program", "-c", "foo", "--ddd", "bar"};
@@ -51,6 +52,9 @@ TEST (optiontest1,Parser) {
  
    std::string expected = "program -c foo --ddd bar";
    CHECK_STRINGS_EQUAL(expected,cmd);
+   expected = "program";
+   std::string name = parser.get_program_name();
+   CHECK_STRINGS_EQUAL(expected,name);
 }
 
 

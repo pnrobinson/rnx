@@ -121,9 +121,11 @@ namespace option
     int op_count_; 
     int nonop_count_;
     std::string command_string_;
+    std::string prog_name_;
     const char** nonop_args_; 
     bool err_;
     std::vector<Option> optionlist_;
+    Descriptor *desc_;
   public:
    
   Parser():  op_count_(0), nonop_count_(0), nonop_args_(0), err_(false) {
@@ -131,7 +133,7 @@ namespace option
 
     Parser(const Descriptor usage[], int argc, const char** argv){
       input_command_string(argc,argv);
-      parse_options(argc,argv);
+      parse_options(usage,argc,argv);
     }
     int optionsCount() { return op_count_; };
     int nonOptionsCount() {return nonop_count_; }
@@ -144,6 +146,7 @@ namespace option
     std::string get_command_string() const { return command_string_; }
     bool hasOption(char c) const;
     bool hasOption(const char *p) const;
+    std::string get_program_name() const { return prog_name_; }
 
   private:
     void input_command_string(int argc, const char** argv) {
@@ -155,7 +158,20 @@ namespace option
       }
       command_string_=os.str();
     }
-    void parse_options(int argc, const char** argv) {
+    void parse_options(const Descriptor usage[],int argc, const char** argv) {
+      if (argv==NULL || argv[0]==NULL)
+	return; // Nothing to parse, should not happen.
+      prog_name_ = argv[0];
+      for (unsigned int i=1;i<argc;++i) {
+	const char *p = argv[i];
+	unsigned int len = strlen(p);
+	if (*p=='-') {
+	  if (len>2 && *(p+1)=='-') {
+	    // long option
+	    const char *q = p+2;
+	  std::cout << p << ":Len=" << len << "  q=" << q << "\n";
+	}
+      }
     }
   };
   
