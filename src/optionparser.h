@@ -41,13 +41,9 @@ namespace option
    */
   enum class ArgType { NONE, STRING, INTEGER, FLOAT };
   
-  //typedef ArgStatus(* CheckArg)(const Option &option, bool msg)
-
   struct Descriptor {
     /**
      * @brief  a short option character (without the leading @c - ).
-     *
-     * See @ref longopt for more information.
      */
     const char shortopt;
     
@@ -61,7 +57,6 @@ namespace option
     
     /**
      * @brief One of NONE, STRING, INTEGER, or FLOAT.
-     *
      */
     const ArgType argtype;
     
@@ -75,10 +70,6 @@ namespace option
      *
      * See option::printUsage() for special formatting characters you can use in
      * @c help to get a column layout.
-     *
-     * @attention
-     * Must be UTF-8-encoded. If your compiler supports C++11 you can use the "u8"
-     * prefix to make sure string literals are properly encoded.
      */
     const char* help;
   };
@@ -101,8 +92,6 @@ namespace option
   class Option {
 
   private:
-    Descriptor *desc_;
-
 
   public:
     Option(const char * args);
@@ -123,29 +112,32 @@ namespace option
     int op_count_; 
     int nonop_count_;
     std::string command_string_;
+    std::string prog_name_;
     const char** nonop_args_; 
     bool err_;
     std::vector<Option> optionlist_;
+    //Descriptor *desc_;
   public:
-   
-  Parser():  op_count_(0), nonop_count_(0), nonop_args_(0), err_(false) {
-    }
-
-  Parser(const Descriptor usage[], int argc, const char** argv):desc_(usage){
+    /*
+      Parser():  op_count_(0), nonop_count_(0), nonop_args_(0), err_(false) {
+      }
+    */
+    Parser(std::vector<Descriptor> usage, int argc, const char** argv){
       input_command_string(argc,argv);
-      parse_options(argc,argv);
+      parse_options(usage,argc,argv);
     }
     int optionsCount() { return op_count_; };
     int nonOptionsCount() {return nonop_count_; }
     //Returns the number of non-option arguments that remained at the end of the most recent parse() that actually encountered non-option arguments.
-    const char **nonOptions() {return nonop_args_; }
+    //const char **nonOptions() {return nonop_args_; }
     //Returns a pointer to an array of non-option arguments (only valid if nonOptionsCount() >0 ).
-    const char * nonOption (int i);
+    //const char * nonOption (int i);
     //Returns nonOptions()[i] (without checking if i is in range!).
     bool error() { return err_; }
     std::string get_command_string() const { return command_string_; }
     bool hasOption(char c) const;
     bool hasOption(const char *p) const;
+    std::string get_program_name() const { return prog_name_; }
 
   private:
     void input_command_string(int argc, const char** argv) {
@@ -157,9 +149,27 @@ namespace option
       }
       command_string_=os.str();
     }
-    void parse_options(int argc, const char** argv) {
+    void parse_options(std::vector<Descriptor> usage,int argc, const char** argv) {
+      if (argv==NULL || argv[0]==NULL)
+	return; // Nothing to parse, should not happen.
+      prog_name_ = argv[0];
+      for (unsigned int i=1;i<argc;++i) {
+	const char *p = argv[i];
+	unsigned int len = strlen(p);
+	if (*p=='-') {
+	  if (len>2 && *(p+1)=='-') {
+	    // long option
+	    const char *q = p+2;
+	    std::cout << p << ":Len=" << len << "  q=" << q << "\n";
+	  }
+	}
+      }
     }
   };
+
+  bool Parser::hasOption(char c) const {
+    return false;
+  }
   
 }
 // namespace option
