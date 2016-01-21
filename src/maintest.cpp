@@ -38,18 +38,17 @@ void handler(int sig) {
 
 TEST (optiontest1,Parser) {
    enum OptionIndex { FOO };
-   const option::Descriptor usage[] = {
+   //const option::Descriptor usage[] = {
+   std::vector<option::Descriptor> usage = {
      { 'c', "enable-foo",  option::ArgType::NONE, 0 },
      {'d', "dddd", option::ArgType::NONE, 0 },
-     {0,0, 0, 0 },
+     //{0,0, 0, 0 },
    };
    //program call: "program -c foo --ddd bar";
    const char* argv[] = {"program", "-c", "foo", "--ddd", "bar"};
    int argc=5;
    option::Parser parser(usage, argc, argv);
    std::string cmd = parser.get_command_string();
-   
- 
    std::string expected = "program -c foo --ddd bar";
    CHECK_STRINGS_EQUAL(expected,cmd);
    expected = "program";
@@ -74,6 +73,6 @@ int main(){
   } catch(const std::exception &e) {
     std::cout << "Caught exception: " << e.what() << std::endl;
   }
-
 }
+/* eof */
 
