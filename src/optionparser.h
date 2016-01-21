@@ -36,7 +36,9 @@ namespace option
   class Arg;
 
   class CheckArg{};
-
+  /**
+   * The four types of allowed argument: None, string, integer, and float value
+   */
   enum class ArgType { NONE, STRING, INTEGER, FLOAT };
   
   //typedef ArgStatus(* CheckArg)(const Option &option, bool msg)
@@ -99,7 +101,7 @@ namespace option
   class Option {
 
   private:
-    Descriptor *desc;
+    Descriptor *desc_;
 
 
   public:
@@ -129,7 +131,7 @@ namespace option
   Parser():  op_count_(0), nonop_count_(0), nonop_args_(0), err_(false) {
     }
 
-    Parser(const Descriptor usage[], int argc, const char** argv){
+  Parser(const Descriptor usage[], int argc, const char** argv):desc_(usage){
       input_command_string(argc,argv);
       parse_options(argc,argv);
     }
