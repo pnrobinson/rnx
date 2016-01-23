@@ -39,52 +39,23 @@
 #include "EnergyFunction2.h"
 #include "RNAStructure.h"
 
-enum  optionIndex { UNKNOWN, HELP, CT };
 
-const option::Descriptor usage[] =
-  {
-    {UNKNOWN, 0,"" , ""    ,option::ArgType::NONE, "USAGE: rnx [options]\n\n"
-     "Options:" },
-    {HELP,    0,"" , "help",option::ArgType::NONE, "  --help  \tPrint usage and exit." },
-    {UNKNOWN, 0,"" ,  ""   ,option::ArgType::NONE, "\nExamples:\n"
-     "  rnx CTfile\n"
-     "  rnx -unk --plus -ppp file1 file2\n" },
-    //{0,0,0,0,0,0}
-  };
+const std::vector<option::Descriptor> usage = {
+     { 'h', "help",  option::ArgType::NONE, "Print usage message and exit" },
+     { 'c', "ct", option::ArgType::STRING, "CT file" },
+     { 'd', "data", option::ArgType::STRING, "Data directory with folding parameters" },
+   };
+
+
 
 int main(int argc, char* argv[]) {
 
-  std::cout << "rnx " << std::endl;
-  argc-=(argc>0); argv+=(argc>0); // skip program name argv[0] if present
-  //option::Stats  stats(usage, argc, argv);
-  //option::Option options[stats.options_max], buffer[stats.buffer_max];
-  //option::Parser parse(usage, argc, argv, options, buffer);
-  /*
-  if (parse.error())
-    return 1;
-  
-  if (options[HELP] || argc == 0) {
-    option::printUsage(std::cout, usage);
-    return 0;
-  }
-
-  if (options[CT]) {
-    for (option::Option* opt = options[CT]; opt; opt = opt->next()) {
-      const char *fname = opt->arg;
-      std::cout << "FFF \"" << fname << "\"\n";
-    }
-    
-  }
-  */
-  
+ 
+  option::Parser parser(usage, argc, argv);
+  std::string cmd = parser.get_command_string();
+  std::cout << cmd << std::endl;
   const char * fname = "./testdata/u3.ct";
-  /*
-  for (option::Option* opt = options[UNKNOWN]; opt; opt = opt->next())
-     std::cout << "Unknown option: " << opt->name << "\n";
   
-  for (int i = 0; i < parse.nonOptionsCount(); ++i)
-    std::cout << "Non-option #" << i << ": " << parse.nonOption(i) << "\n";
-  */
 
   const char *dir = "./dat";
   Datatable dattab(dir);

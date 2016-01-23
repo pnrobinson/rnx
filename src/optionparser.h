@@ -30,23 +30,22 @@
 #include <vector>
 #include <sstream>
 #include <string>
-
+#include <cstring>
+//#include <unistd.h>
 
 namespace option
 {
-
-
-  class Arg;
-
-  class CheckArg{};
   /**
    * The four types of allowed argument: None, string, integer, and float value
    */
   enum class ArgType { NONE, STRING, INTEGER, FLOAT };
-  
+  /**
+   * A simple struct that is used to define the 
+   * expected command line arguments.
+   */
   struct Descriptor {
     /**
-     * @brief  a short option character (without the leading @c - ).
+     * A short option character (without the leading @c - ).
      */
     const char shortopt;
     
@@ -77,73 +76,98 @@ namespace option
     const char* help;
   };
 
-
-
- 
-
-  class Arg {
-    
-  public :
-    enum ArgType type;
-
-  };
-
-
   /**
    * A single, completely parsed option.
    */
   class Option {
 
   private:
-
+    /** The short option for this argument */
+    char shortopt_;
+    /**
+     * @brief The long option name (without the "--");
+     */
+    std::string longopt_;
+    /**
+     * @brief One of NONE, STRING, INTEGER, or FLOAT.
+     */
+    ArgType argtype_;
+    /**
+     * The value of the option (or NULL if there is no value )
+     */
+    std::string value_;
   public:
-    Option(const char * args);
-    Option (const Option &orig);
+    /**
+     * Initialize the option based on the Description that matches the 
+     * flag and its argument (if any). Note that we strip the "--" from
+     * the flag if needed.
+     * @param desc The Description object that matched the flag
+     * @param arg The corresponding argument (except for ArgType::NONE).
+     */
+    Option(const Descriptor & desc,
+	   const char *  arg 
+	   ):shortopt_(desc.shortopt), value_(arg), argtype_(desc.argtype) {
+      size_t len  = strlen(desc.longopt);
+      size_t i=0;
+      if (0<len && desc.longopt[0]=='-') i=1;
+      if (1<len && desc.longopt[1]=='-') i=2;
+      longopt_=std::string(desc.longopt+i,desc.longopt+len);
+    }
+    Option (const Option &orig) {
+      shortopt_ = orig.shortopt_;
+      longopt_=orig.longopt_;
+      argtype_ = orig.argtype_;
+      value_=orig.value_;
+    }
+    ~Option() {
+      /* no-op */
+    }
+    inline char get_shortopt() const { return shortopt_; }
+    inline std::string get_longopt() const { return longopt_; }
+    inline std::string get_value() const { return value_; }
     void operator= (const Option &orig);
-    /*ArgType type ()	const {
-      return desc == 0 ? 0 : desc->argtype;
-      }*/
- 
-
-
   };
 
 
 
-
+  /**
+   * This class coordinates the parsing of the command line arguments.
+   */
   class Parser {
-    int op_count_; 
-    int nonop_count_;
+    /** A copy of the entire command used to run the program. */
     std::string command_string_;
+    /** A copy of the name of the program. */
     std::string prog_name_;
-    const char** nonop_args_; 
+    /** A flag to indicate that some error occured. Usually, client code should check this and die with
+	an error message if there has ben an error. */
     bool err_;
-    std::vector<Option> optionlist_;
-    //Descriptor *desc_;
+    /** List of all of the successfully parsed Options */
+    std::vector<Option> option_list_;
+    /** List of all arguments that do not have an option flag (i.e. that are not proceeded by -c or --foo)*/
+    std::vector<std::string> nonoption_list_;
+   
   public:
-    /*
-      Parser():  op_count_(0), nonop_count_(0), nonop_args_(0), err_(false) {
-      }
-    */
-    Parser(std::vector<Descriptor> usage, int argc, const char** argv){
+    /**
+     * Note that the signature const char*const* is needed to allow us to 
+     * pass a non-const char** as an argument.
+     */
+    Parser(std::vector<Descriptor> usage, int argc, const char* const * argv){
       input_command_string(argc,argv);
       parse_options(usage,argc,argv);
     }
-    int optionsCount() { return op_count_; };
-    int nonOptionsCount() {return nonop_count_; }
-    //Returns the number of non-option arguments that remained at the end of the most recent parse() that actually encountered non-option arguments.
-    //const char **nonOptions() {return nonop_args_; }
-    //Returns a pointer to an array of non-option arguments (only valid if nonOptionsCount() >0 ).
-    //const char * nonOption (int i);
-    //Returns nonOptions()[i] (without checking if i is in range!).
+    int options_count() { return option_list_.size(); };
+    int nonoption_count() {return nonoption_list_.size(); }
     bool error() { return err_; }
     std::string get_command_string() const { return command_string_; }
-    bool hasOption(char c) const;
-    bool hasOption(const char *p) const;
+    bool has_option(char c) const;
+    bool has_option(const char *p) const;
+    std::string get_value(char c) const;
+    std::string get_value(const char *p) const;
+    std::string get_nonoption(int n) const;
     std::string get_program_name() const { return prog_name_; }
 
   private:
-    void input_command_string(int argc, const char** argv) {
+    void input_command_string(int argc, const char* const* argv) {
       std::stringstream os;
       if (argc==0) { return; }
       os << argv[0];
@@ -152,26 +176,96 @@ namespace option
       }
       command_string_=os.str();
     }
-    void parse_options(std::vector<Descriptor> usage,int argc, const char** argv) {
+ 
+    void parse_options(std::vector<Descriptor> usage,int argc, const char* const* argv) {
       if (argv==NULL || argv[0]==NULL)
 	return; // Nothing to parse, should not happen.
       prog_name_ = argv[0];
       for (unsigned int i=1;i<argc;++i) {
 	const char *p = argv[i];
 	unsigned int len = strlen(p);
-	if (*p=='-') {
-	  if (len>2 && *(p+1)=='-') {
-	    // long option
-	    const char *q = p+2;
-	    std::cout << p << ":Len=" << len << "  q=" << q << "\n";
+	if (len>2 && i+1<argc && 0==strncmp(p,"--",2)) {
+	  const char *q=p+2;
+	  for(std::vector<struct Descriptor>::iterator it = usage.begin(); it != usage.end(); ++it) {
+	    if (!strcmp(q,(it->longopt))) {
+	      option_list_.push_back(Option(*it, argv[i+1]));
+	    }
 	  }
+	  i++; // advance i since we read argv[i+1] already
+	} else if (len>1 && i+1<argc && *p=='-') {
+	  const char q=p[1];
+	  for(std::vector<struct Descriptor>::iterator it = usage.begin(); it != usage.end(); ++it) {
+	    if (q ==it->shortopt) {
+	      option_list_.push_back(Option(*it, argv[i+1]));
+	    }
+	  }
+	  i++;  // advance i since we read argv[i+1] already
+	} else {
+	  // An argument that was not preceded by a short or long option.
+	  nonoption_list_.push_back(std::string(argv[i]));
 	}
       }
     }
   };
 
-  bool Parser::hasOption(char c) const {
+  /**
+   * @param c A short option
+   * @return true if the Option is valid (Because it was initialized so using a Descriptor).
+   */
+  bool Parser::has_option(char c) const {
+    for (std::vector<Option>::const_iterator it = option_list_.begin(); it != option_list_.end(); ++it) {
+      if (c == it->get_shortopt())
+	return true;
+    }
     return false;
+  }
+
+  /**
+   * @param p A long option
+   * @return true if the Option is valid (Because it was initialized so using a Descriptor).
+   */
+  bool Parser::has_option(const char *p) const {
+    std::string longopt(p);
+    for (std::vector<Option>::const_iterator it = option_list_.begin(); it != option_list_.end(); ++it) {
+      if (longopt == it->get_longopt())
+	return true;
+    }
+    return false;
+  }
+
+  /**
+   * Return the value of the argument corresponding to the short option c
+   * @param c The short option.
+   */
+  std::string Parser::get_value(char c) const {
+    for (std::vector<Option>::const_iterator it = option_list_.begin(); it != option_list_.end(); ++it) {
+      if (c == it->get_shortopt())
+	return it->get_value();
+    }
+    return NULL;
+  }
+
+   /**
+   * Return the value of the argument corresponding to the short option c
+   * @param l The long option.
+   */
+  std::string Parser::get_value(const char* l) const {
+    std::string longopt(l);
+    for (std::vector<Option>::const_iterator it = option_list_.begin(); it != option_list_.end(); ++it) {
+      if (longopt == it->get_longopt())
+	return it->get_value();
+    }
+    return NULL;
+  }
+
+  /**
+   * @param i index of the nonoption
+   * Return the corresponding nonoption (argument not preceeded by - or -- option)
+   */
+  std::string Parser::get_nonoption(int i) const {
+    if (i>= nonoption_list_.size())
+      return "";
+    return nonoption_list_[i];
   }
   
 }
